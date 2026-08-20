@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Type Pulse - Minimalist Typing Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=JetBrains+Mono:wght@600;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Space Grotesk', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.05);
+            border-radius: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+
+        /* Keycaps visual styling */
+        .key-cap {
+            transition: all 0.08s ease;
+            box-shadow: 0 3px 0 rgba(0,0,0,0.15), 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .key-cap:active, .key-cap.key-pressed {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 rgba(0,0,0,0.15), 0 2px 3px rgba(0,0,0,0.05);
+            background-color: #3b82f6 !important;
+            color: #ffffff !important;
+            border-color: #2563eb !important;
+        }
+
+        /* Target word row animation */
+        .word-slide-item {
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Shake animation on wrong key */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-6px); }
+            40%, 80% { transform: translateX(6px); }
+        }
+        .shake-target {
+            animation: shake 0.25s ease-in-out;
+        }
+
+        /* Music equalizer animation */
+        @keyframes eqBar {
+            0%, 100% { height: 4px; }
+            50% { height: 14px; }
+        }
+        .eq-playing .eq-bar:nth-child(1) { animation: eqBar 0.6s ease-in-out infinite; }
+        .eq-playing .eq-bar:nth-child(2) { animation: eqBar 0.8s ease-in-out 0.2s infinite; }
+        .eq-playing .eq-bar:nth-child(3) { animation: eqBar 0.5s ease-in-out 0.4s infinite; }
+    </style>
+</head>
+<body class="h-screen w-screen overflow-hidden bg-slate-200 dark:bg-slate-950 text-slate-800 dark:text-slate-100 flex flex-col justify-between p-4 sm:p-6 font-sans antialiased">
+
+    <!-- Top Navigation Bar -->
+    <header class="max-w-3xl w-full mx-auto flex justify-between items-center z-10">
+        <button id="btnHome" title="Menu & Custom Text" class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-sm border border-slate-300 dark:border-slate-700 flex items-center justify-center text-lg sm:text-xl transition-all duration-150 active:scale-95">
+            <i class="fa-solid font-bold fa-bars"></i>
+        </button>
+
+        <!-- Best Score / Metrics Header -->
+        <div class="flex flex-col items-center">
+            <div class="w-5 h-5 sm:w-6 sm:h-6 border-2 border-slate-700 dark:border-slate-300 rounded-md mb-0.5"></div>
+            <div class="text-[11px] sm:text-xs tracking-widest font-extrabold uppercase text-slate-600 dark:text-slate-400">
+                BEST : <span id="bestWpmVal">0</span> WPM
+            </div>
+        </div>
+
+        <div class="flex items-center gap-1.5 sm:gap-2">
+            <!-- Theme Toggle Button -->
+            <button id="btnTheme" title="Toggle Light/Dark Theme" class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-amber-400 shadow-sm border border-slate-300 dark:border-slate-700 flex items-center justify-center text-lg sm:text-xl transition-all duration-150 active:scale-95">
+                <i id="themeIcon" class="fa-solid fa-moon"></i>
+            </button>
+
+            <!-- Background Music Toggle Button -->
+            <button id="btnMusic" title="Toggle Background Music" class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-sm border border-slate-300 dark:border-slate-700 flex items-center justify-center transition-all duration-150 active:scale-95 relative overflow-hidden">
+                <div id="eqIcon" class="flex items-end gap-[2px] h-4">
+                    <span class="eq-bar w-[3px] bg-indigo-500 rounded-full h-1"></span>
+                    <span class="eq-bar w-[3px] bg-indigo-500 rounded-full h-2"></span>
+                    <span class="eq-bar w-[3px] bg-indigo-500 rounded-full h-1"></span>
+                </div>
+            </button>
+
+            <!-- Audio SFX Toggle Button -->
+            <button id="btnSound" title="Toggle SFX Sound" class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-sm border border-slate-300 dark:border-slate-700 flex items-center justify-center text-lg sm:text-xl transition-all duration-150 active:scale-95">
+                <i id="soundIcon" class="fa-solid fa-volume-high"></i>
+            </button>
+
+            <!-- Restart Button -->
+            <button id="btnRestart" title="Restart Game" class="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-white/80 dark:bg-slate-800/80 hover:bg-white dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 shadow-sm border border-slate-300 dark:border-slate-700 flex items-center justify-center text-lg sm:text-xl transition-all duration-150 active:scale-95">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- Toast Notification Banner -->
+    <div id="toastNotification" class="fixed top-20 left-1/2 -translate-x-1/2 z-50 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-bold px-4 py-2.5 rounded-full shadow-xl transition-all duration-300 opacity-0 pointer-events-none transform -translate-y-2 flex items-center gap-2">
+        <i class="fa-solid fa-circle-check text-emerald-400 dark:text-emerald-600 text-sm"></i>
+        <span id="toastText">Link copied to clipboard!</span>
+    </div>
+
+    <!-- Central Typing Display Area -->
+    <main class="flex-1 max-w-xl w-full mx-auto flex flex-col items-center justify-center relative my-2">
+        
+        <!-- Game Display Card -->
+        <div id="gameCard" class="w-full bg-slate-300/70 dark:bg-slate-900/80 backdrop-blur-md border-2 border-slate-300 dark:border-slate-800 rounded-3xl p-6 sm:p-8 flex flex-col items-center shadow-xl relative overflow-hidden transition-all">
+            
+            <!-- Dynamic Stats Bar above active box -->
+            <div class="w-full flex justify-between items-center text-xs font-bold text-slate-500 dark:text-slate-400 mb-4 px-2 uppercase tracking-wider">
+                <div>WPM: <span id="liveWpm" class="text-slate-800 dark:text-slate-100 font-extrabold text-sm">0</span></div>
+                <div>ACC: <span id="liveAcc" class="text-slate-800 dark:text-slate-100 font-extrabold text-sm">100%</span></div>
+                <div>TIME: <span id="liveTime" class="text-slate-800 dark:text-slate-100 font-extrabold text-sm">0s</span></div>
+            </div>
+
+            <!-- Stack of Upcoming Words (Stacked above active word) -->
+            <div id="upcomingStack" class="w-full flex flex-col items-center justify-end gap-1 sm:gap-2 min-h-[140px] mb-3 select-none">
+                <!-- Stacked words will be rendered here dynamically -->
+            </div>
+
+            <!-- Active Current Word Highlight Pill -->
+            <div id="activePill" class="w-full bg-white dark:bg-slate-800/90 border border-slate-300 dark:border-slate-700 shadow-inner rounded-xl py-3 sm:py-4 px-4 flex items-center justify-between my-2 transition-transform">
+                <i class="fa-solid fa-caret-right text-slate-400 dark:text-slate-500 text-lg sm:text-xl"></i>
+                <div id="activeWordContainer" class="font-mono text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-widest text-center px-2 uppercase break-all flex justify-center items-center">
+                    <!-- Letter spans rendered here -->
+                </div>
+                <i class="fa-solid fa-caret-left text-slate-400 dark:text-slate-500 text-lg sm:text-xl"></i>
+            </div>
+
+            <!-- Progress Indicator -->
+            <div class="w-full mt-4 flex flex-col items-center">
+                <div class="font-mono text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">
+                    [ <span id="progressPercent">0%</span> ]
+                </div>
+                <div class="w-3/4 bg-slate-400/30 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                    <div id="progressBar" class="bg-slate-800 dark:bg-indigo-400 h-full w-0 transition-all duration-200"></div>
+                </div>
+            </div>
+
+            <!-- Shared Text Badge Indicator -->
+            <div id="sharedBadge" class="mt-3 text-[11px] font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 border border-indigo-200 dark:border-indigo-800/50 px-3 py-1 rounded-full flex items-center gap-1.5 hidden">
+                <i class="fa-solid fa-link text-[10px]"></i> Playing Shared Custom Text
+            </div>
+
+            <!-- Complete Game Overlay inside card -->
+            <div id="completionOverlay" class="absolute inset-0 bg-slate-200/95 dark:bg-slate-900/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center z-20 hidden">
+                <div class="w-14 h-14 bg-emerald-500 text-white rounded-full flex items-center justify-center text-2xl mb-3 shadow-md animate-bounce">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+                <h2 class="text-2xl font-black text-slate-800 dark:text-slate-100 mb-1">Text Completed!</h2>
+                <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-4">Great typing performance!</p>
+
+                <div class="grid grid-cols-3 gap-3 w-full max-w-xs mb-5">
+                    <div class="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-300 dark:border-slate-700">
+                        <div class="text-[10px] uppercase font-bold text-slate-400">Speed</div>
+                        <div class="text-lg font-black text-slate-800 dark:text-slate-100"><span id="finalWpm">0</span> <span class="text-xs font-normal">WPM</span></div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-300 dark:border-slate-700">
+                        <div class="text-[10px] uppercase font-bold text-slate-400">Accuracy</div>
+                        <div class="text-lg font-black text-slate-800 dark:text-slate-100"><span id="finalAcc">100</span>%</div>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 p-2.5 rounded-xl border border-slate-300 dark:border-slate-700">
+                        <div class="text-[10px] uppercase font-bold text-slate-400">Time</div>
+                        <div class="text-lg font-black text-slate-800 dark:text-slate-100"><span id="finalTime">0</span>s</div>
+                    </div>
+                </div>
+
+                <div class="flex flex-col gap-2 w-full max-w-xs">
+                    <div class="flex gap-2 w-full">
+                        <button id="btnPlayAgain" class="flex-1 py-2.5 bg-slate-800 dark:bg-slate-100 hover:bg-slate-900 dark:hover:bg-white text-white dark:text-slate-900 font-bold rounded-xl text-sm shadow-md transition-all active:scale-95">
+                            <i class="fa-solid fa-rotate-right mr-1.5"></i> Play Again
+                        </button>
+                        <button id="btnOpenTextFromOverlay" class="px-3.5 py-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold border border-slate-300 dark:border-slate-700 rounded-xl text-sm transition-all active:scale-95">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </button>
+                    </div>
+                    <button id="btnShareFromOverlay" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5">
+                        <i class="fa-solid fa-share-nodes"></i> Share This Challenge Link
+                    </button>
+                </div>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Virtual On-screen QWERTY Keyboard -->
+    <footer class="max-w-2xl w-full mx-auto pb-2 z-10">
+        <div id="keyboard" class="flex flex-col gap-1.5 sm:gap-2 items-center justify-center w-full px-1">
+            <!-- Row 1 -->
+            <div class="flex gap-1 sm:gap-1.5 justify-center w-full">
+                <button data-key="Q" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">Q</button>
+                <button data-key="W" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">W</button>
+                <button data-key="E" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">E</button>
+                <button data-key="R" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">R</button>
+                <button data-key="T" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">T</button>
+                <button data-key="Y" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">Y</button>
+                <button data-key="U" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">U</button>
+                <button data-key="I" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">I</button>
+                <button data-key="O" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">O</button>
+                <button data-key="P" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">P</button>
+            </div>
+
+            <!-- Row 2 -->
+            <div class="flex gap-1 sm:gap-1.5 justify-center w-full px-2 sm:px-4">
+                <button data-key="A" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">A</button>
+                <button data-key="S" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">S</button>
+                <button data-key="D" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">D</button>
+                <button data-key="F" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">F</button>
+                <button data-key="G" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">G</button>
+                <button data-key="H" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">H</button>
+                <button data-key="J" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">J</button>
+                <button data-key="K" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">K</button>
+                <button data-key="L" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">L</button>
+            </div>
+
+            <!-- Row 3 -->
+            <div class="flex gap-1 sm:gap-1.5 justify-center w-full px-4 sm:px-8">
+                <button data-key="Z" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">Z</button>
+                <button data-key="X" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">X</button>
+                <button data-key="C" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">C</button>
+                <button data-key="V" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">V</button>
+                <button data-key="B" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">B</button>
+                <button data-key="N" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">N</button>
+                <button data-key="M" class="key-cap flex-1 max-w-[48px] h-10 sm:h-12 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-700 dark:text-slate-200 font-mono font-bold text-sm sm:text-base flex items-center justify-center">M</button>
+                <button data-key="Backspace" class="key-cap px-2.5 h-10 sm:h-12 bg-slate-300 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-200 font-bold text-xs flex items-center justify-center" title="Backspace">
+                    <i class="fa-solid fa-delete-left"></i>
+                </button>
+            </div>
+
+            <!-- Row 4: Spacebar support -->
+            <div class="flex justify-center w-full px-8 mt-0.5">
+                <button data-key=" " class="key-cap w-1/2 h-9 sm:h-10 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-slate-500 dark:text-slate-400 font-mono text-xs font-bold flex items-center justify-center uppercase tracking-widest">
+                    SPACE
+                </button>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Custom Text & Game Options Modal -->
+    <div id="settingsModal" class="fixed inset-0 bg-slate-900/60 dark:bg-black/75 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col gap-4 transform scale-95 transition-transform duration-200" id="modalCard">
+            
+            <div class="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-slate-800 dark:bg-slate-100 text-white dark:text-slate-900 flex items-center justify-center font-bold text-sm">
+                        <i class="fa-solid fa-sliders"></i>
+                    </div>
+                    <h3 class="text-xl font-extrabold text-slate-800 dark:text-slate-100">Custom Text & Settings</h3>
+                </div>
+                <button id="btnCloseModal" class="w-8 h-8 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 flex items-center justify-center text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Preset Selector -->
+            <div>
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">Load Text Preset</label>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    <button class="preset-btn px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-left transition-colors" data-preset="standard">
+                        <i class="fa-solid fa-font text-slate-500 mr-1"></i> Standard
+                    </button>
+                    <button class="preset-btn px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-left transition-colors" data-preset="programming">
+                        <i class="fa-solid fa-code text-slate-500 mr-1"></i> Coding
+                    </button>
+                    <button class="preset-btn px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-left transition-colors" data-preset="quotes">
+                        <i class="fa-solid fa-quote-left text-slate-500 mr-1"></i> Quotes
+                    </button>
+                    <button class="preset-btn px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-left transition-colors" data-preset="longwords">
+                        <i class="fa-solid fa-cubes text-slate-500 mr-1"></i> Hard Words
+                    </button>
+                    <button class="preset-btn px-3 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 text-left transition-colors col-span-2 sm:col-span-1" data-preset="sampleImage">
+                        <i class="fa-solid fa-gem text-slate-500 mr-1"></i> Image Preset
+                    </button>
+                </div>
+            </div>
+
+            <!-- Custom Text Area -->
+            <div>
+                <div class="flex justify-between items-center mb-1.5">
+                    <label class="block text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">Or Paste Your Custom Text</label>
+                    <span id="charCount" class="text-[11px] font-semibold text-slate-400">0 words</span>
+                </div>
+                <textarea id="customTextInput" rows="4" placeholder="Type or paste any custom text here..." class="w-full p-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 rounded-2xl text-sm font-mono text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-800 dark:focus:ring-slate-300 resize-none custom-scrollbar"></textarea>
+            </div>
+
+            <!-- Options -->
+            <div class="flex items-center justify-between bg-slate-50 dark:bg-slate-800/60 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300">
+                <span class="flex items-center gap-2">
+                    <i class="fa-solid fa-repeat text-slate-500"></i> Auto-capitalize words
+                </span>
+                <input type="checkbox" id="chkUppercase" checked class="w-4 h-4 rounded text-slate-800 focus:ring-slate-800 cursor-pointer">
+            </div>
+
+            <!-- Modal Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-2 pt-1">
+                <button id="btnSaveCustomText" class="flex-1 py-3 bg-slate-800 dark:bg-slate-100 hover:bg-slate-900 dark:hover:bg-white text-white dark:text-slate-900 font-bold rounded-2xl text-sm shadow-md transition-all active:scale-98">
+                    Apply Text & Play
+                </button>
+                <button id="btnShareModalText" class="py-3 px-4 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl text-sm shadow-md transition-all active:scale-98 flex items-center justify-center gap-1.5" title="Copy shareable URL with this text">
+                    <i class="fa-solid fa-share-nodes"></i> Share Link
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* Web Audio Synthesizer for tactile click audio feedback */
+        class SoundEngine {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+            }
+
+            playKeyTone(isError = false) {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+
+                if (isError) {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(120, now);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(450 + Math.random() * 80, now);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now);
+                    osc.stop(now + 0.05);
+                }
+            }
+
+            playWordCompleteTone() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                [523.25, 659.25].forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.04);
+                    gain.gain.setValueAtTime(0.1, now + idx * 0.04);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.04 + 0.2);
+                    osc.start(now + idx * 0.04);
+                    osc.stop(now + idx * 0.04 + 0.2);
+                });
+            }
+
+            playFinishTone() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const now = this.ctx.currentTime;
+                const freqs = [523.25, 659.25, 783.99, 1046.50];
+                freqs.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+                    gain.gain.setValueAtTime(0.12, now + idx * 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
+                    osc.start(now + idx * 0.08);
+                    osc.stop(now + idx * 0.08 + 0.35);
+                });
+            }
+        }
+
+        class AmbientMusicEngine {
+            constructor() {
+                this.ctx = null;
+                this.isPlaying = false;
+                this.timer = null;
+                this.step = 0;
+                // Chill Lofi Ambient chord progressions (Am7 -> Fmaj7 -> Cmaj7 -> G)
+                this.chords = [
+                    [220.00, 261.63, 329.63, 392.00], // Am7
+                    [174.61, 220.00, 261.63, 329.63], // Fmaj7
+                    [130.81, 164.81, 196.00, 246.94], // Cmaj7
+                    [196.00, 246.94, 293.66, 392.00]  // G
+                ];
+                this.bassNotes = [110.00, 87.31, 65.41, 98.00];
+            }
+
+            init(audioCtx) {
+                this.ctx = audioCtx;
+            }
+
+            start() {
+                if (this.isPlaying) return;
+                this.isPlaying = true;
+                this.step = 0;
+                this.scheduleNextBeat();
+            }
+
+            stop() {
+                this.isPlaying = false;
+                if (this.timer) {
+                    clearTimeout(this.timer);
+                    this.timer = null;
+                }
+            }
+
+            scheduleNextBeat() {
+                if (!this.isPlaying || !this.ctx) return;
+
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+
+                const now = this.ctx.currentTime;
+                const chordIdx = Math.floor(this.step / 4) % this.chords.length;
+                const chord = this.chords[chordIdx];
+                const bass = this.bassNotes[chordIdx];
+
+                if (this.step % 4 === 0) {
+                    this.playSubBass(bass, now, 1.8);
+                }
+
+                const note = chord[this.step % chord.length];
+                this.playSoftSynth(note, now, 0.45);
+
+                this.step++;
+                this.timer = setTimeout(() => this.scheduleNextBeat(), 380);
+            }
+
+            playSubBass(freq, now, duration) {
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, now);
+                    
+                    gain.gain.setValueAtTime(0.035, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(now);
+                    osc.stop(now + duration);
+                } catch(e){}
+            }
+
+            playSoftSynth(freq, now, duration) {
+                try {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    const filter = this.ctx.createBiquadFilter();
+
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(freq, now);
+
+                    filter.type = 'lowpass';
+                    filter.frequency.setValueAtTime(750, now);
+
+                    gain.gain.setValueAtTime(0.02, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+                    osc.connect(filter);
+                    filter.connect(gain);
+                    gain.connect(this.ctx.destination);
+
+                    osc.start(now);
+                    osc.stop(now + duration);
+                } catch(e){}
+            }
+        }
+
+        const audio = new SoundEngine();
+        const musicEngine = new AmbientMusicEngine();
+
+        /* Text Presets */
+        const PRESETS = {
+            sampleImage: "CORALS FIRST ENSURE PERFORMED TOGETHER JOURNEY HIGHEST SYSTEM VIBRANT CRYSTAL BRAIN SYMBOLS DELIGHT",
+            standard: "The quick brown fox jumps over the lazy dog while typing with smooth focus and steady rhythm to reach high speed and precision.",
+            programming: "javascript function algorithm variable array constant boolean return component render state effect object query interface execute",
+            quotes: "Success is not final failure is not fatal it is the courage to continue that counts. Life is what happens when you are busy making other plans.",
+            longwords: "PERFORMED UNBELIEVABLE EXTRAORDINARY RESPONSIBILITY ARCHITECTURE UNDERSTANDING MULTIFACETED PERSPECTIVE ACCOMPLISHMENT IMPLEMENTATION"
+        };
+
+        /* Game State Variables */
+        let wordsList = [];
+        let currentWordIndex = 0;
+        let charIndex = 0;
+        let startTime = null;
+        let timerInterval = null;
+        let totalTypedKeys = 0;
+        let correctTypedKeys = 0;
+        let errorsCount = 0;
+        let gameFinished = false;
+        let uppercaseMode = true;
+        let isDarkMode = localStorage.getItem('typepulse_theme') === 'dark';
+        let isMusicPlaying = true; // Music enabled by default
+        let currentRawText = '';
+        let isSharedTextActive = false;
+        let bestWPM = parseInt(localStorage.getItem('typepulse_best_wpm') || '0', 10);
+
+        // DOM Element Cache
+        const DOM = {
+            bestWpmVal: document.getElementById('bestWpmVal'),
+            upcomingStack: document.getElementById('upcomingStack'),
+            activeWordContainer: document.getElementById('activeWordContainer'),
+            activePill: document.getElementById('activePill'),
+            progressPercent: document.getElementById('progressPercent'),
+            progressBar: document.getElementById('progressBar'),
+            sharedBadge: document.getElementById('sharedBadge'),
+            liveWpm: document.getElementById('liveWpm'),
+            liveAcc: document.getElementById('liveAcc'),
+            liveTime: document.getElementById('liveTime'),
+            completionOverlay: document.getElementById('completionOverlay'),
+            finalWpm: document.getElementById('finalWpm'),
+            finalAcc: document.getElementById('finalAcc'),
+            finalTime: document.getElementById('finalTime'),
+            btnRestart: document.getElementById('btnRestart'),
+            btnHome: document.getElementById('btnHome'),
+            btnTheme: document.getElementById('btnTheme'),
+            themeIcon: document.getElementById('themeIcon'),
+            btnMusic: document.getElementById('btnMusic'),
+            eqIcon: document.getElementById('eqIcon'),
+            btnSound: document.getElementById('soundIcon'),
+            settingsModal: document.getElementById('settingsModal'),
+            btnCloseModal: document.getElementById('btnCloseModal'),
+            customTextInput: document.getElementById('customTextInput'),
+            btnSaveCustomText: document.getElementById('btnSaveCustomText'),
+            btnShareModalText: document.getElementById('btnShareModalText'),
+            btnShareFromOverlay: document.getElementById('btnShareFromOverlay'),
+            chkUppercase: document.getElementById('chkUppercase'),
+            charCount: document.getElementById('charCount'),
+            btnPlayAgain: document.getElementById('btnPlayAgain'),
+            btnOpenTextFromOverlay: document.getElementById('btnOpenTextFromOverlay'),
+            toastNotification: document.getElementById('toastNotification'),
+            toastText: document.getElementById('toastText')
+        };
+
+        // Initialize display best score
+        DOM.bestWpmVal.innerText = bestWPM;
+
+        /* Toast Helper */
+        function showToast(msg) {
+            DOM.toastText.innerText = msg;
+            DOM.toastNotification.classList.remove('opacity-0', 'pointer-events-none', '-translate-y-2');
+            DOM.toastNotification.classList.add('opacity-100', 'translate-y-0');
+            setTimeout(() => {
+                DOM.toastNotification.classList.remove('opacity-100', 'translate-y-0');
+                DOM.toastNotification.classList.add('opacity-0', 'pointer-events-none', '-translate-y-2');
+            }, 2500);
+        }
+
+        /* Clipboard Helper */
+        function copyToClipboard(textToCopy) {
+            const el = document.createElement('textarea');
+            el.value = textToCopy;
+            document.body.appendChild(el);
+            el.select();
+            document.execCommand('copy');
+            document.body.removeChild(el);
+            showToast("Share link copied to clipboard!");
+        }
+
+        /* Generate Shareable URL for custom text */
+        function getShareableUrl(text) {
+            const baseUrl = window.location.origin + window.location.pathname;
+            const encoded = encodeURIComponent(text);
+            return `${baseUrl}?text=${encoded}`;
+        }
+
+        /* Theme Toggle Logic */
+        function applyTheme(dark) {
+            isDarkMode = dark;
+            if (isDarkMode) {
+                document.documentElement.classList.add('dark');
+                DOM.themeIcon.className = 'fa-solid fa-sun';
+                localStorage.setItem('typepulse_theme', 'dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+                DOM.themeIcon.className = 'fa-solid fa-moon';
+                localStorage.setItem('typepulse_theme', 'light');
+            }
+        }
+
+        function updateMusicState(playing) {
+            isMusicPlaying = playing;
+            if (isMusicPlaying) {
+                DOM.eqIcon.classList.add('eq-playing');
+                DOM.btnMusic.classList.add('border-indigo-500', 'ring-2', 'ring-indigo-500/30');
+                audio.init();
+                if (audio.ctx) {
+                    musicEngine.init(audio.ctx);
+                    musicEngine.start();
+                }
+            } else {
+                DOM.eqIcon.classList.remove('eq-playing');
+                DOM.btnMusic.classList.remove('border-indigo-500', 'ring-2', 'ring-indigo-500/30');
+                musicEngine.stop();
+            }
+        }
+
+        function toggleBackgroundMusic() {
+            updateMusicState(!isMusicPlaying);
+        }
+
+        // Global user interaction gesture listener to ensure Web Audio unlocks cleanly
+        function unlockAudio() {
+            audio.init();
+            if (audio.ctx && audio.ctx.state === 'suspended') {
+                audio.ctx.resume();
+            }
+            if (isMusicPlaying) {
+                updateMusicState(true);
+            }
+        }
+        window.addEventListener('click', unlockAudio, { once: true });
+        window.addEventListener('keydown', unlockAudio, { once: true });
+
+        /* Text Processing Helper */
+        function parseTextToWords(rawText, forceUpper = true) {
+            let cleaned = rawText.replace(/\s+/g, ' ').trim();
+            if (!cleaned) return [];
+            let words = cleaned.split(' ');
+            if (forceUpper) {
+                words = words.map(w => w.toUpperCase());
+            }
+            return words;
+        }
+
+        /* Parse URL Search Parameters for Shared Text */
+        function getSharedTextFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            const queryText = params.get('text') || params.get('t');
+            if (queryText) {
+                try {
+                    return decodeURIComponent(queryText).trim();
+                } catch(e) {
+                    return queryText.trim();
+                }
+            }
+            return null;
+        }
+
+        /* Load & Start Game */
+        function initGame(rawText = null) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            startTime = null;
+
+            if (rawText === null) {
+                const urlText = getSharedTextFromURL();
+                if (urlText) {
+                    rawText = urlText;
+                    isSharedTextActive = true;
+                    DOM.sharedBadge.classList.remove('hidden');
+                } else {
+                    rawText = localStorage.getItem('typepulse_custom_text') || PRESETS.sampleImage;
+                    isSharedTextActive = false;
+                    DOM.sharedBadge.classList.add('hidden');
+                }
+            }
+
+            currentRawText = rawText;
+            uppercaseMode = DOM.chkUppercase.checked;
+            wordsList = parseTextToWords(rawText, uppercaseMode);
+            
+            if (wordsList.length === 0) {
+                wordsList = parseTextToWords(PRESETS.sampleImage, uppercaseMode);
+            }
+
+            currentWordIndex = 0;
+            charIndex = 0;
+            totalTypedKeys = 0;
+            correctTypedKeys = 0;
+            errorsCount = 0;
+            gameFinished = false;
+
+            DOM.liveWpm.innerText = '0';
+            DOM.liveAcc.innerText = '100%';
+            DOM.liveTime.innerText = '0s';
+            DOM.progressPercent.innerText = '0%';
+            DOM.progressBar.style.width = '0%';
+            DOM.completionOverlay.classList.add('hidden');
+
+            renderDisplay();
+        }
+
+        /* Render Stacked Upcoming Words & Active Word */
+        function renderDisplay() {
+            if (gameFinished) return;
+
+            DOM.upcomingStack.innerHTML = '';
+
+            const numUpcomingToShow = 3;
+            const upcomingList = [];
+
+            for (let i = numUpcomingToShow; i >= 1; i--) {
+                const idx = currentWordIndex + i;
+                if (idx < wordsList.length) {
+                    upcomingList.push({ word: wordsList[idx], distance: i });
+                }
+            }
+
+            upcomingList.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'word-slide-item font-mono font-extrabold uppercase tracking-widest text-center transition-all duration-200';
+                
+                if (item.distance === 3) {
+                    div.className += ' text-lg sm:text-xl text-slate-400 dark:text-slate-600 opacity-40 scale-90';
+                } else if (item.distance === 2) {
+                    div.className += ' text-xl sm:text-2xl text-slate-500 dark:text-slate-500 opacity-65 scale-95';
+                } else if (item.distance === 1) {
+                    div.className += ' text-2xl sm:text-3xl text-slate-700 dark:text-slate-300 opacity-90 scale-100';
+                }
+
+                div.innerText = item.word;
+                DOM.upcomingStack.appendChild(div);
+            });
+
+            if (upcomingList.length === 0) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'text-sm font-semibold text-slate-400 dark:text-slate-500 italic py-4';
+                emptyDiv.innerText = '— Almost Finished —';
+                DOM.upcomingStack.appendChild(emptyDiv);
+            }
+
+            // Render Active Word
+            const currentWord = wordsList[currentWordIndex] || '';
+            DOM.activeWordContainer.innerHTML = '';
+
+            for (let i = 0; i < currentWord.length; i++) {
+                const span = document.createElement('span');
+                span.className = 'inline-block transition-all duration-75 relative px-[1px]';
+                span.innerText = currentWord[i];
+
+                if (i < charIndex) {
+                    span.className += ' text-emerald-600 dark:text-emerald-400 font-black';
+                } else if (i === charIndex) {
+                    span.className += ' text-slate-900 dark:text-white border-b-4 border-slate-800 dark:border-indigo-400 bg-slate-200/80 dark:bg-slate-700/80 rounded-t';
+                } else {
+                    span.className += ' text-slate-400 dark:text-slate-500';
+                }
+
+                DOM.activeWordContainer.appendChild(span);
+            }
+
+            // Update Progress Bar
+            const percent = Math.round((currentWordIndex / wordsList.length) * 100);
+            DOM.progressPercent.innerText = `${percent}%`;
+            DOM.progressBar.style.width = `${percent}%`;
+        }
+
+        /* Start Live Stats Timer */
+        function startTimerIfNeeded() {
+            if (!startTime) {
+                startTime = Date.now();
+                timerInterval = setInterval(updateStats, 200);
+            }
+        }
+
+        /* Calculate Stats */
+        function updateStats() {
+            if (!startTime || gameFinished) return;
+
+            const elapsedSec = Math.max(1, Math.floor((Date.now() - startTime) / 1000));
+            DOM.liveTime.innerText = `${elapsedSec}s`;
+
+            const wpm = Math.round((correctTypedKeys / 5) / (elapsedSec / 60));
+            DOM.liveWpm.innerText = Math.max(0, wpm);
+
+            const accuracy = totalTypedKeys > 0 
+                ? Math.round((correctTypedKeys / totalTypedKeys) * 100) 
+                : 100;
+            DOM.liveAcc.innerText = `${accuracy}%`;
+        }
+
+        /* Handle Key Input */
+        function handleInputChar(key) {
+            if (gameFinished) return;
+
+            startTimerIfNeeded();
+
+            const currentWord = wordsList[currentWordIndex];
+            if (!currentWord) return;
+
+            const targetChar = currentWord[charIndex];
+            const inputChar = uppercaseMode ? key.toUpperCase() : key;
+            const expectedChar = uppercaseMode ? targetChar.toUpperCase() : targetChar;
+
+            totalTypedKeys++;
+
+            if (inputChar === expectedChar) {
+                correctTypedKeys++;
+                charIndex++;
+                audio.playKeyTone(false);
+
+                if (charIndex >= currentWord.length) {
+                    currentWordIndex++;
+                    charIndex = 0;
+                    audio.playWordCompleteTone();
+
+                    if (currentWordIndex >= wordsList.length) {
+                        finishGame();
+                        return;
+                    }
+                }
+                renderDisplay();
+            } else {
+                errorsCount++;
+                audio.playKeyTone(true);
+                
+                DOM.activePill.classList.remove('shake-target');
+                void DOM.activePill.offsetWidth;
+                DOM.activePill.classList.add('shake-target');
+
+                updateStats();
+            }
+        }
+
+        /* Handle Backspace */
+        function handleBackspace() {
+            if (gameFinished) return;
+            if (charIndex > 0) {
+                charIndex--;
+                audio.playKeyTone(false);
+                renderDisplay();
+            }
+        }
+
+        /* Skip Current Word on Space / Enter */
+        function skipWord() {
+            if (gameFinished) return;
+            startTimerIfNeeded();
+
+            currentWordIndex++;
+            charIndex = 0;
+            audio.playWordCompleteTone();
+
+            if (currentWordIndex >= wordsList.length) {
+                finishGame();
+            } else {
+                renderDisplay();
+            }
+        }
+
+        /* Finish Game */
+        function finishGame() {
+            gameFinished = true;
+            clearInterval(timerInterval);
+
+            const elapsedSec = Math.max(1, Math.floor((Date.now() - startTime) / 1000));
+            const finalWpmVal = Math.round((correctTypedKeys / 5) / (elapsedSec / 60));
+            const finalAccVal = totalTypedKeys > 0 ? Math.round((correctTypedKeys / totalTypedKeys) * 100) : 100;
+
+            DOM.finalWpm.innerText = finalWpmVal;
+            DOM.finalAcc.innerText = finalAccVal;
+            DOM.finalTime.innerText = elapsedSec;
+            DOM.progressPercent.innerText = '100%';
+            DOM.progressBar.style.width = '100%';
+
+            if (finalWpmVal > bestWPM) {
+                bestWPM = finalWpmVal;
+                localStorage.setItem('typepulse_best_wpm', bestWPM);
+                DOM.bestWpmVal.innerText = bestWPM;
+            }
+
+            audio.playFinishTone();
+            DOM.completionOverlay.classList.remove('hidden');
+        }
+
+        /* Highlight Onscreen Key */
+        function highlightKeycap(key) {
+            let selector = `button[data-key="${key.toUpperCase()}"]`;
+            if (key === ' ') selector = `button[data-key=" "]`;
+            if (key === 'Backspace') selector = `button[data-key="Backspace"]`;
+
+            const btn = document.querySelector(selector);
+            if (btn) {
+                btn.classList.add('key-pressed');
+                setTimeout(() => btn.classList.remove('key-pressed'), 120);
+            }
+        }
+
+        /* Physical Keyboard Event Listener */
+        window.addEventListener('keydown', (e) => {
+            if (document.activeElement === DOM.customTextInput) return;
+
+            if (e.key === 'Backspace') {
+                e.preventDefault();
+                highlightKeycap('Backspace');
+                handleBackspace();
+            } else if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                highlightKeycap(' ');
+                skipWord();
+            } else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+                highlightKeycap(e.key);
+                handleInputChar(e.key);
+            }
+        });
+
+        /* Virtual Keycap Click Handlers */
+        document.querySelectorAll('.key-cap').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const key = btn.getAttribute('data-key');
+                if (key === 'Backspace') {
+                    handleBackspace();
+                } else if (key === ' ') {
+                    skipWord();
+                } else {
+                    handleInputChar(key);
+                }
+            });
+        });
+
+        /* Modal Handlers */
+        function openModal() {
+            DOM.customTextInput.value = currentRawText || PRESETS.sampleImage;
+            updateModalCharCount();
+            DOM.settingsModal.classList.remove('opacity-0', 'pointer-events-none');
+            DOM.settingsModal.querySelector('#modalCard').classList.remove('scale-95');
+        }
+
+        function closeModal() {
+            DOM.settingsModal.classList.add('opacity-0', 'pointer-events-none');
+            DOM.settingsModal.querySelector('#modalCard').classList.add('scale-95');
+        }
+
+        function updateModalCharCount() {
+            const txt = DOM.customTextInput.value.trim();
+            const wordCount = txt ? txt.split(/\s+/).length : 0;
+            DOM.charCount.innerText = `${wordCount} words`;
+        }
+
+        /* Navigation & Controls */
+        DOM.btnTheme.addEventListener('click', () => applyTheme(!isDarkMode));
+        DOM.btnMusic.addEventListener('click', toggleBackgroundMusic);
+
+        DOM.btnRestart.addEventListener('click', () => initGame(currentRawText));
+        DOM.btnHome.addEventListener('click', openModal);
+        DOM.btnCloseModal.addEventListener('click', closeModal);
+
+        DOM.btnOpenTextFromOverlay.addEventListener('click', () => {
+            DOM.completionOverlay.classList.add('hidden');
+            openModal();
+        });
+
+        DOM.btnPlayAgain.addEventListener('click', () => {
+            initGame(currentRawText);
+        });
+
+        DOM.btnSound.addEventListener('click', () => {
+            audio.enabled = !audio.enabled;
+            if (audio.enabled) {
+                DOM.btnSound.className = 'fa-solid fa-volume-high';
+            } else {
+                DOM.btnSound.className = 'fa-solid fa-volume-xmark text-slate-400';
+            }
+        });
+
+        DOM.customTextInput.addEventListener('input', updateModalCharCount);
+
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const presetKey = btn.getAttribute('data-preset');
+                if (PRESETS[presetKey]) {
+                    DOM.customTextInput.value = PRESETS[presetKey];
+                    updateModalCharCount();
+                }
+            });
+        });
+
+        // Save & Play Custom Text
+        DOM.btnSaveCustomText.addEventListener('click', () => {
+            const newText = DOM.customTextInput.value.trim() || PRESETS.sampleImage;
+            localStorage.setItem('typepulse_custom_text', newText);
+            closeModal();
+            initGame(newText);
+        });
+
+        // Share text link from modal
+        DOM.btnShareModalText.addEventListener('click', () => {
+            const textToShare = DOM.customTextInput.value.trim() || PRESETS.sampleImage;
+            const url = getShareableUrl(textToShare);
+            copyToClipboard(url);
+        });
+
+        // Share text link from completion screen
+        DOM.btnShareFromOverlay.addEventListener('click', () => {
+            const url = getShareableUrl(currentRawText);
+            copyToClipboard(url);
+        });
+
+        DOM.settingsModal.addEventListener('click', (e) => {
+            if (e.target === DOM.settingsModal) closeModal();
+        });
+
+        window.onload = function() {
+            applyTheme(isDarkMode);
+            initGame();
+            updateMusicState(true);
+        };
+    </script>
+</body>
+</html>
