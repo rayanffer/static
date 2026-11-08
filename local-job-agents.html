@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Local job-apply agents — what actually submits</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-display: 'Crimson Pro', Georgia, serif;
+    --font-body: 'IBM Plex Sans', 'Segoe UI', sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #f6f2ea;
+    --surface: #fffdf8;
+    --surface2: #efe9dc;
+    --border: rgba(30, 42, 58, 0.10);
+    --border-bright: rgba(30, 42, 58, 0.22);
+    --text: #1b2430;
+    --text-dim: #77706a;
+    --navy: #1e3a5f;
+    --navy-dim: rgba(30, 58, 95, 0.07);
+    --gold: #a8801f;
+    --gold-dim: rgba(212, 167, 58, 0.14);
+    --sage: #4f6b3d;
+    --sage-dim: rgba(95, 122, 79, 0.12);
+    --clay: #a8492a;
+    --clay-dim: rgba(180, 85, 45, 0.10);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14181d;
+      --surface: #1b2128;
+      --surface2: #232b34;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-bright: rgba(255, 255, 255, 0.18);
+      --text: #e9e3d7;
+      --text-dim: #9aa0a6;
+      --navy: #9dc0e4;
+      --navy-dim: rgba(157, 192, 228, 0.10);
+      --gold: #dcb662;
+      --gold-dim: rgba(220, 182, 98, 0.14);
+      --sage: #93b57a;
+      --sage-dim: rgba(147, 181, 122, 0.13);
+      --clay: #e08a63;
+      --clay-dim: rgba(224, 138, 99, 0.13);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background-color: var(--bg);
+    background-image:
+      radial-gradient(ellipse 900px 400px at 12% -5%, var(--navy-dim), transparent 70%),
+      radial-gradient(ellipse 700px 500px at 92% 8%, var(--gold-dim), transparent 65%),
+      repeating-linear-gradient(90deg, transparent 0 119px, var(--border) 119px 120px);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.6;
+    padding: 0 32px 80px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate { animation: fadeUp 0.45s cubic-bezier(.22,.61,.36,1) both; animation-delay: calc(var(--i, 0) * 0.05s); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .01ms !important; animation-delay: 0ms !important; transition-duration: .01ms !important; }
+    html { scroll-behavior: auto; }
+  }
+
+  /* ---------- nav ---------- */
+  nav {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; align-items: center; gap: 22px;
+    padding: 14px 0;
+    margin: 0 -32px 0;
+    padding-left: 32px; padding-right: 32px;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  nav::-webkit-scrollbar { display: none; }
+  nav .mark {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--navy);
+    white-space: nowrap; padding-right: 6px; border-right: 1px solid var(--border-bright);
+  }
+  nav a {
+    font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em;
+    color: var(--text-dim); text-decoration: none; white-space: nowrap;
+    padding: 4px 0; border-bottom: 1px solid transparent;
+    transition: color .15s, border-color .15s;
+  }
+  nav a:hover { color: var(--text); border-bottom-color: var(--gold); }
+
+  /* ---------- hero ---------- */
+  header.hero { padding: 68px 0 44px; max-width: 900px; }
+
+  .kicker {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    letter-spacing: .18em; text-transform: uppercase; color: var(--gold);
+    display: flex; align-items: center; gap: 10px; margin-bottom: 22px;
+  }
+  .kicker::before { content: ''; width: 28px; height: 1px; background: var(--gold); }
+
+  h1 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(38px, 6vw, 68px); line-height: 1.02;
+    letter-spacing: -0.015em; margin-bottom: 20px;
+  }
+  h1 em { font-style: italic; color: var(--navy); }
+
+  .lead {
+    font-family: var(--font-display); font-size: clamp(19px, 2.2vw, 24px);
+    line-height: 1.45; color: var(--text-dim); max-width: 720px;
+  }
+  .lead strong { color: var(--text); font-weight: 600; }
+
+  /* ---------- kpi ---------- */
+  .kpis {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px; background: var(--border-bright);
+    border: 1px solid var(--border-bright); border-radius: 4px;
+    overflow: hidden; margin: 44px 0 64px;
+  }
+  .kpi { background: var(--surface); padding: 22px 20px; }
+  .kpi__n {
+    font-family: var(--font-display); font-size: 42px; line-height: 1;
+    font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+  }
+  .kpi__n--gold { color: var(--gold); }
+  .kpi__n--sage { color: var(--sage); }
+  .kpi__n--clay { color: var(--clay); }
+  .kpi__n--navy { color: var(--navy); }
+  .kpi__l {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 500;
+    letter-spacing: .12em; text-transform: uppercase; color: var(--text-dim);
+    margin-top: 10px; line-height: 1.5;
+  }
+
+  /* ---------- sections ---------- */
+  section { margin-bottom: 72px; scroll-margin-top: 72px; }
+
+  .sec-head { display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px; flex-wrap: wrap; }
+  .sec-num {
+    font-family: var(--font-mono); font-size: 11px; font-weight: 600;
+    color: var(--gold); letter-spacing: .1em;
+  }
+  h2 {
+    font-family: var(--font-display); font-weight: 600;
+    font-size: clamp(26px, 3.4vw, 38px); line-height: 1.15; letter-spacing: -.01em;
+  }
+  .sec-sub { color: var(--text-dim); max-width: 700px; margin-bottom: 28px; font-size: 14.5px; }
+
+  /* ---------- table ---------- */
+  .table-card {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 0 var(--border), 0 18px 40px -32px rgba(20,30,45,.5);
+  }
+  .table-scroll { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  thead th {
+    position: sticky; top: 53px; z-index: 5;
+    background: var(--surface2);
+    font-family: var(--font-mono); font-size: 9.5px; font-weight: 600;
+    letter-spacing: .13em; text-transform: uppercase; color: var(--text-dim);
+    text-align: left; padding: 13px 16px; white-space: nowrap;
+    border-bottom: 2px solid var(--border-bright);
+  }
+  tbody td {
+    padding: 15px 16px; vertical-align: top;
+    border-bottom: 1px solid var(--border); line-height: 1.5;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr { transition: background .14s ease; }
+  tbody tr:hover { background: var(--navy-dim); }
+
+  .proj { font-weight: 600; font-size: 14px; display: block; }
+  .proj small {
+    display: block; font-family: var(--font-mono); font-size: 10.5px;
+    font-weight: 400; color: var(--text-dim); margin-top: 4px; letter-spacing: -.01em;
+    word-break: break-word;
+  }
+  td.desc { min-width: 300px; max-width: 420px; }
+  td.desc small { display: block; color: var(--text-dim); font-size: 12px; margin-top: 6px; }
+  code {
+    font-family: var(--font-mono); font-size: 11.5px;
+    background: var(--navy-dim); color: var(--navy);
+    padding: 1px 5px; border-radius: 3px; white-space: nowrap;
+  }
+  .stars { font-family: var(--font-mono); font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    letter-spacing: .04em; padding: 4px 9px; border-radius: 3px; white-space: nowrap;
+  }
+  .badge::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+  .b-yes { background: var(--sage-dim); color: var(--sage); }
+  .b-gated { background: var(--gold-dim); color: var(--gold); }
+  .b-fill { background: var(--navy-dim); color: var(--navy); }
+  .b-no { background: var(--clay-dim); color: var(--clay); }
+
+  /* ---------- tier cards ---------- */
+  .tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; }
+  .tier {
+    background: var(--surface); border: 1px solid var(--border);
+    border-top: 3px solid var(--border-bright);
+    border-radius: 4px; padding: 24px 22px;
+    display: flex; flex-direction: column; gap: 12px;
+  }
+  .tier--a { border-top-color: var(--sage); }
+  .tier--b { border-top-color: var(--navy); }
+  .tier--c { border-top-color: var(--gold); }
+  .tier__label {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--text-dim);
+  }
+  .tier h3 { font-family: var(--font-display); font-size: 23px; font-weight: 600; line-height: 1.2; }
+  .tier p { font-size: 13.5px; color: var(--text-dim); }
+  .tier ul { list-style: none; display: flex; flex-direction: column; gap: 7px; margin-top: 2px; }
+  .tier li {
+    font-family: var(--font-mono); font-size: 11.5px; color: var(--text);
+    padding-left: 14px; position: relative;
+  }
+  .tier li::before {
+    content: ''; position: absolute; left: 0; top: 7px;
+    width: 5px; height: 5px; background: var(--border-bright); border-radius: 1px;
+  }
+
+  /* ---------- callout ---------- */
+  .callout {
+    background: var(--surface);
+    border: 1px solid var(--border-bright);
+    border-left: 4px solid var(--clay);
+    border-radius: 4px; padding: 28px 30px;
+    display: grid; grid-template-columns: 190px 1fr; gap: 28px; align-items: start;
+  }
+  .callout__tag {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    letter-spacing: .14em; text-transform: uppercase; color: var(--clay); line-height: 1.6;
+  }
+  .callout h3 {
+    font-family: var(--font-display); font-size: 24px; font-weight: 600;
+    margin-bottom: 10px; line-height: 1.25;
+  }
+  .callout p { font-size: 14px; color: var(--text-dim); }
+  .callout p + p { margin-top: 10px; }
+  .callout strong { color: var(--text); font-weight: 600; }
+
+  /* ---------- decision grid ---------- */
+  .decisions { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1px; background: var(--border-bright); border: 1px solid var(--border-bright); border-radius: 4px; overflow: hidden; }
+  .decision { background: var(--surface); padding: 24px 22px; }
+  .decision__if {
+    font-family: var(--font-mono); font-size: 10.5px; font-weight: 600;
+    letter-spacing: .1em; text-transform: uppercase; color: var(--gold);
+    margin-bottom: 12px;
+  }
+  .decision h3 { font-family: var(--font-display); font-size: 22px; font-weight: 600; margin-bottom: 8px; line-height: 1.25; }
+  .decision p { font-size: 13.5px; color: var(--text-dim); }
+  .decision p + p { margin-top: 8px; }
+
+  /* ---------- pull quote ---------- */
+  .pull {
+    font-family: var(--font-display); font-size: clamp(22px, 3vw, 30px);
+    line-height: 1.35; font-style: italic; color: var(--navy);
+    max-width: 800px; padding-left: 26px; border-left: 2px solid var(--gold);
+    margin: 0 0 64px;
+  }
+
+  /* ---------- method ---------- */
+  .method { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 26px; }
+  .method__col h4 {
+    font-family: var(--font-mono); font-size: 10px; font-weight: 600;
+    letter-spacing: .13em; text-transform: uppercase; color: var(--text-dim);
+    margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid var(--border);
+  }
+  .method__col ul { list-style: none; display: flex; flex-direction: column; gap: 9px; }
+  .method__col li { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+  .method__col li b { color: var(--text); font-weight: 500; }
+  .method__col a { color: var(--navy); text-decoration: none; border-bottom: 1px dotted var(--border-bright); }
+  .method__col a:hover { border-bottom-style: solid; }
+
+  footer {
+    margin-top: 60px; padding-top: 22px; border-top: 1px solid var(--border);
+    display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap;
+    font-family: var(--font-mono); font-size: 10.5px; color: var(--text-dim);
+    letter-spacing: .04em;
+  }
+
+  @media (max-width: 860px) {
+    body { padding: 0 18px 60px; }
+    nav { margin: 0 -18px; padding-left: 18px; padding-right: 18px; gap: 16px; }
+    thead th { top: 0; }
+    .callout { grid-template-columns: 1fr; gap: 14px; }
+    header.hero { padding-top: 44px; }
+    .kpi__n { font-size: 34px; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="mark">Field notes</span>
+  <a href="#shortlist">Shortlist</a>
+  <a href="#tiers">Three tiers</a>
+  <a href="#india">The India problem</a>
+  <a href="#choose">How to choose</a>
+  <a href="#method">Method</a>
+</nav>
+
+<div class="wrap">
+
+  <header class="hero">
+    <p class="kicker animate" style="--i:0">Survey &middot; 11 projects &middot; November 2026</p>
+    <h1 class="animate" style="--i:1">Everyone built the<br>applying part. Almost<br>nobody built the <em>deciding</em> part.</h1>
+    <p class="lead animate" style="--i:2">I went looking for open-source job agents you can run on your own machine. The finding is not which one is best &mdash; it is that the category splits cleanly in two. <strong>Five tools will genuinely press Submit.</strong> <strong>Six will not, on purpose.</strong> Choosing wrong means either wasting a weekend or spraying your CV at companies you never read about.</p>
+  </header>
+
+  <div class="kpis animate" style="--i:3">
+    <div class="kpi">
+      <div class="kpi__n kpi__n--navy">11</div>
+      <div class="kpi__l">Projects reviewed</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__n kpi__n--sage">2</div>
+      <div class="kpi__l">Submit at scale<br>AIHawk &middot; ApplyPilot</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__n kpi__n--gold">3</div>
+      <div class="kpi__l">Submit behind<br>a gate or dry-run</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__n kpi__n--clay">0</div>
+      <div class="kpi__l">That scrape Naukri<br>except JobSpy</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi__n">32.4k</div>
+      <div class="kpi__l">Stars on the<br>category leader</div>
+    </div>
+  </div>
+
+  <section id="shortlist">
+    <div class="sec-head">
+      <span class="sec-num">01</span>
+      <h2>The shortlist</h2>
+    </div>
+    <p class="sec-sub">Sorted by how much of the pipeline each one owns, not by stars. Star counts are approximate and were read in early November 2026; they measure attention, not whether the thing still works today.</p>
+
+    <div class="table-card animate" style="--i:4">
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Project</th>
+              <th>What it actually does</th>
+              <th>Submits?</th>
+              <th>How you run it</th>
+              <th>Model it needs</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>
+                <span class="proj">AIHawk</span>
+                <small>feder-cr/Jobs_Applier_AI_Agent_AIHawk</small>
+                <small class="stars" style="color:var(--gold)">32.4k &middot; MIT</small>
+              </td>
+              <td class="desc">Searches a 10M-posting database (24 sources, rebuilt every five hours) on your machine, scores each 1&ndash;5 against your CV, you select, then it fills and sends the company&rsquo;s own form in a real Firefox. Keeps a screenshot and the page&rsquo;s answer for every application.
+                <small>Relaunched 4 Nov 2026 as a terminal CLI. No LinkedIn Easy Apply any more.</small>
+              </td>
+              <td><span class="badge b-yes">Yes, after you confirm</span></td>
+              <td>One-line installer (<code>run.sh</code> / <code>run.ps1</code>), terminal, visible browser</td>
+              <td>OrcaRouter key by default; any OpenAI-compatible endpoint with tool calling</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="proj">ApplyPilot</span>
+                <small>Pickle-Pixel/ApplyPilot</small>
+                <small class="stars" style="color:var(--gold)">1.8k &middot; AGPL-3.0</small>
+              </td>
+              <td class="desc">Six independent stages: discover (5 boards + 48 Workday portals + 30 career sites) &rarr; enrich &rarr; score 1&ndash;10 &rarr; tailor CV &rarr; cover letter &rarr; browser submission. Parallel Chrome workers, live dashboard, working <code>--dry-run</code>.
+                <small>Fork ecosystem is fragmented: ApplyPilot-Plus adds 129 Greenhouse employers; another fork adds human-in-the-loop and Gmail tracking.</small>
+              </td>
+              <td><span class="badge b-yes">Yes &mdash; <code>apply</code> command</span></td>
+              <td><code>pip install applypilot</code> + Chrome + Node</td>
+              <td>Free Gemini tier or Ollama for stages 1&ndash;5; Claude Code CLI for the apply stage</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="proj">scout</span>
+                <small>joelkanyi/scout</small>
+                <small class="stars" style="color:var(--gold)">13 &middot; MIT</small>
+              </td>
+              <td class="desc">CLI plus dashboard: 15+ sources, 0&ndash;100 scoring, CV tailoring with a fabrication detector, ATS keyword scoring, auto-apply on Greenhouse / Lever / Workday, background daemon for scraping and ghost detection.
+                <small>Auto-apply is disabled for healthcare and education roles by design.</small>
+              </td>
+              <td><span class="badge b-gated">Yes &mdash; with <code>--run</code></span></td>
+              <td>pip or Docker, Mac/Linux</td>
+              <td>Gemini free tier, Ollama, Claude, or any OpenAI-compatible</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="proj">agentic-job-applier</span>
+                <small>joeyspagnoli/agentic-job-applier</small>
+                <small class="stars" style="color:var(--gold)">2 &middot; MIT</small>
+              </td>
+              <td class="desc">Dockerised FastAPI + React pipeline across Greenhouse, Workday, Lever, Ashby, iCIMS and Taleo. Gate agent filters, LaTeX resume per job, second-pass review, then a browser worker completes the form with typed Playwright tools.
+                <small>Auto-submit fires only on Greenhouse and Ashby, and only when a strict binary gate passes. Everything else lands in NEEDS_REVIEW.</small>
+              </td>
+              <td><span class="badge b-gated">Gated, 2 ATS only</span></td>
+              <td><code>docker compose up</code> + host Chrome with debug port</td>
+              <td>OpenAI only &mdash; other providers are stubbed</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="proj">claude-job-auto-apply</span>
+                <small>liruihan000/claude-job-auto-apply</small>
+                <small class="stars" style="color:var(--gold)">5 &middot; MIT</small>
+              </td>
+              <td class="desc">A Claude Code skill: subagent orchestration plus Playwright MCP drives 10+ ATS handlers, parallel browsers, daily cron, and it will register accounts and handle CAPTCHAs and email verification to get through.
+                <small>Claims 30 applications across 7 ATS platforms in one unattended session.</small>
+              </td>
+              <td><span class="badge b-gated">Fully unattended</span></td>
+              <td><code>npx skills add &hellip;</code> then <code>claude --dangerously-skip-permissions</code></td>
+              <td>Claude Code subscription</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="proj">career-ops</span>
+                <small>career-ops-hq/career-ops</small>
+                <small class="stars" style="color:var(--gold)">700+ contributors &middot; MIT</small>
+              </td>
+              <td class="desc">The judgement layer. A&ndash;H evaluation of a JD against your CV, ghost-job and legitimacy checks, ATS-tailored PDFs, cover letters, contact finding, tracker, interview prep &mdash; all inside whatever AI CLI you already use.
+                <small>Runs on Claude Code, Codex, Cursor, OpenCode, Qwen, Kimi, Copilot, Pi and Antigravity (<code>agy</code>).</small>
+              </td>
+              <td><span class="badge b-no">No &mdash; you press Submit</span></td>
+              <td><code>npx @santifer/career-ops init</code>, then your CLI</td>
+              <td>Whatever CLI or subscription you already pay for; local models work</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="proj">JobNavigator</span>
+                <small>vesaias/JobNavigator</small>
+                <small class="stars" style="color:var(--gold)">163 &middot; MIT</small>
+              </td>
+              <td class="desc">Self-hosted multi-account console: 12 ATS handlers plus JobSpy plus a Chrome extension, LLM scoring with light/full reports, 8 resume and 7 cover-letter templates, ATS autofill with AI answers to free-text questions, Gmail tracking, Telegram alerts, Sankey funnel.
+                <small>Autofills forms and answers questions; the submit click stays yours.</small>
+              </td>
+              <td><span class="badge b-fill">Autofill only</span></td>
+              <td><code>docker compose up</code> &mdash; prebuilt images, localhost</td>
+              <td>Claude, OpenAI, OpenRouter, Ollama, LM Studio, Claude Code, Codex, Antigravity CLI</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="proj">MR.Jobs</span>
+                <small>humancto/mr-jobs</small>
+                <small class="stars" style="color:var(--gold)">5 &middot; MIT</small>
+              </td>
+              <td class="desc">Local dashboard over 7+ sources (Greenhouse and Lever APIs, JobSpy boards, RemoteOK, HN Who-is-Hiring, Adzuna, any career page). Scores 0&ndash;100, drafts materials, fills forms with Playwright, tracks the pipeline, scans your inbox over IMAP, flags ghosted applications.
+                <small>Dry-run by default; <code>--live</code> is a deliberate second step, with a 25/day cap.</small>
+              </td>
+              <td><span class="badge b-gated">Only with <code>--live</code></span></td>
+              <td><code>setup.sh</code> or Docker on port 8080</td>
+              <td>Claude Code CLI by default, configurable backend</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="proj">AutoApply</span>
+                <small>Liam-Frost/AutoApply</small>
+                <small class="stars" style="color:var(--gold)">56 &middot; PolyForm NC</small>
+              </td>
+              <td class="desc">Vue + FastAPI operator console over Postgres, Redis and Celery: job index, fit scoring, applicant memory and story bank, materials workspace, scheduled automation plans, review queue, per-provider cost telemetry.
+                <small>Browser form-fill and click-submit are still explicit <code>not_implemented</code> paths rather than fake successes.</small>
+              </td>
+              <td><span class="badge b-no">Not yet</span></td>
+              <td><code>uv run autoapply start</code> (Docker for data services)</td>
+              <td>OpenAI, Anthropic, Gemini, DeepSeek, Kimi, Qwen, Grok, Groq, Mistral, OpenRouter, Ollama, Claude/Codex CLIs</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="proj">ApplyPack</span>
+                <small>applypack/applypack</small>
+                <small class="stars" style="color:var(--gold)">29 &middot; MIT</small>
+              </td>
+              <td class="desc">Watches 33 kinds of job source hourly, a rule-plus-AI classifier, an &ldquo;is it real&rdquo; liveness check with evidence links, keyword gap analysis, cover letters that cannot invent, Telegram or Discord alerts, its own Postgres.
+                <small>No application filling at all. Built for software engineers.</small>
+              </td>
+              <td><span class="badge b-no">No</span></td>
+              <td><code>npm install &amp;&amp; npm start</code> &mdash; Node 22, no Docker</td>
+              <td>Claude Code / Codex / Gemini CLIs, Ollama, LM Studio, or API keys</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="proj">JobSpy</span>
+                <small>speedyapply/JobSpy</small>
+                <small class="stars" style="color:var(--gold)">4.5k &middot; MIT</small>
+              </td>
+              <td class="desc">A library, not an agent: one call returns a DataFrame of postings from LinkedIn, Indeed, Glassdoor, ZipRecruiter, Google, Bayt, Naukri and BDJobs, with proxy rotation and Indian salary parsing (lakhs and crores).
+                <small>This is the discovery engine sitting underneath half the projects in this table.</small>
+              </td>
+              <td><span class="badge b-no">No</span></td>
+              <td><code>pip install -U python-jobspy</code></td>
+              <td>None &mdash; no LLM involved</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section id="tiers">
+    <div class="sec-head">
+      <span class="sec-num">02</span>
+      <h2>The split that matters</h2>
+    </div>
+    <p class="sec-sub">Three tiers, and the tier a project sits in tells you more than its feature list does. A tool in tier A without tier C is a machine that sends your CV to whatever it finds.</p>
+
+    <div class="tiers">
+      <div class="tier tier--a animate" style="--i:5">
+        <span class="tier__label">Tier A &mdash; presses Submit</span>
+        <h3>End-to-end appliers</h3>
+        <p>Discovery, scoring, tailoring and a browser that fills and sends the real form. Every one of them is one bad config away from sending something you did not read.</p>
+        <ul>
+          <li>AIHawk</li>
+          <li>ApplyPilot (+ two active forks)</li>
+          <li>scout</li>
+          <li>agentic-job-applier &mdash; gated</li>
+          <li>claude-job-auto-apply</li>
+        </ul>
+      </div>
+      <div class="tier tier--b animate" style="--i:6">
+        <span class="tier__label">Tier B &mdash; fills, never sends</span>
+        <h3>Assistants</h3>
+        <p>The form is completed for you, including the free-text screening questions. You read it, fix the one answer it got wrong, and click. Slower per application, far safer per week.</p>
+        <ul>
+          <li>JobNavigator</li>
+          <li>MR.Jobs &mdash; dry-run default</li>
+          <li>AutoApply &mdash; submit still unimplemented</li>
+        </ul>
+      </div>
+      <div class="tier tier--c animate" style="--i:7">
+        <span class="tier__label">Tier C &mdash; decides</span>
+        <h3>Judgement layers</h3>
+        <p>The half of the problem nobody automates: is this posting real, is it still open, is it worth your evening, and what does a recruiter at this company actually want to read.</p>
+        <ul>
+          <li>career-ops</li>
+          <li>ApplyPack</li>
+          <li>JobSpy &mdash; raw discovery only</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <p class="pull animate" style="--i:8">&ldquo;Every project in this list that is worth using ships a dry-run or an approval gate. The ones that do not are the ones with five stars and a CAPTCHA solver.&rdquo;</p>
+
+  <section id="india">
+    <div class="sec-head">
+      <span class="sec-num">03</span>
+      <h2>The India problem</h2>
+    </div>
+    <p class="sec-sub">The single most useful thing I learned, and it does not appear in any of the READMEs.</p>
+
+    <div class="callout animate" style="--i:9">
+      <div class="callout__tag">Geographic<br>mismatch</div>
+      <div>
+        <h3>Almost every auto-submit path is built for American and European hiring.</h3>
+        <p>The supported ATS lists read the same across projects: <strong>Greenhouse, Lever, Workday, Ashby, iCIMS, Taleo</strong>. Indian employers hire overwhelmingly through <strong>Naukri</strong> and <strong>LinkedIn</strong> &mdash; and LinkedIn Easy Apply is deliberately unsupported by most of these tools, because it is the path that gets accounts banned fastest.</p>
+        <p>The one component with native Naukri support is <strong>JobSpy</strong>, which parses Naukri&rsquo;s own JSON API and converts &ldquo;12&ndash;16 Lacs P.A.&rdquo; into real numbers. It is a scraper, not an applier. So for a search based in India, expect the submit half of tier A to earn its keep mainly on multinationals hiring into India &mdash; and expect the discovery and tailoring half to do the real work everywhere else.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="choose">
+    <div class="sec-head">
+      <span class="sec-num">04</span>
+      <h2>How to choose</h2>
+    </div>
+    <p class="sec-sub">Pick by the outcome you want, not by the feature table.</p>
+
+    <div class="decisions animate" style="--i:10">
+      <div class="decision">
+        <p class="decision__if">If you want it to actually submit</p>
+        <h3>AIHawk or ApplyPilot</h3>
+        <p>AIHawk for the largest community and the newest rewrite; ApplyPilot for a cleaner staged pipeline you can run one stage at a time, with a real dry-run. Run <code>--dry-run</code> at least once before anything leaves your machine.</p>
+      </div>
+      <div class="decision">
+        <p class="decision__if">If you want a console, not a black box</p>
+        <h3>JobNavigator or MR.Jobs</h3>
+        <p>Both are Docker, both keep state locally, both autofill rather than submit. JobNavigator is the more finished product; MR.Jobs has the better safety defaults &mdash; dry-run on, 25/day cap, headed browser.</p>
+      </div>
+      <div class="decision">
+        <p class="decision__if">If you want better decisions, not more applications</p>
+        <h3>career-ops</h3>
+        <p>It scores the JD against your CV, checks the posting is still real, drafts the documents, and leaves the Submit click to you. It also happens to be the one that runs on Antigravity CLI today.</p>
+      </div>
+      <div class="decision">
+        <p class="decision__if">If you want zero API spend</p>
+        <h3>scout, ApplyPack, or career-ops</h3>
+        <p>scout and ApplyPack both run on free Gemini tiers or a local Ollama model. career-ops costs nothing extra if you already pay for a coding CLI &mdash; it borrows the subscription you have.</p>
+      </div>
+      <div class="decision">
+        <p class="decision__if">If you want to build your own</p>
+        <h3>JobSpy + Playwright + a gate</h3>
+        <p>That is what most of this table already is, under a different name. Take JobSpy for discovery, Playwright for the form, and put a human approval step before submit &mdash; the projects that skipped that step are the ones with the most caveats.</p>
+      </div>
+      <div class="decision">
+        <p class="decision__if">If you are applying at volume, anywhere</p>
+        <h3>Read the terms first</h3>
+        <p>Mass auto-apply breaches the terms of several job boards and produces applications recruiters can spot. &ldquo;1,000 applications in two days&rdquo; is a spray-and-pray story, not a success metric. Cap the volume, and read every CV the tool generates.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="method">
+    <div class="sec-head">
+      <span class="sec-num">05</span>
+      <h2>Method &amp; sources</h2>
+    </div>
+    <p class="sec-sub">How this was assembled, and what would change the conclusions.</p>
+
+    <div class="method">
+      <div class="method__col">
+        <h4>How I checked</h4>
+        <ul>
+          <li><b>Primary sources first.</b> Each project&rsquo;s own README and docs, read at the repository, not summaries of them.</li>
+          <li><b>Submission behaviour</b> taken from each project&rsquo;s own statement of what it will and will not do &mdash; this is the column most likely to be misreported elsewhere.</li>
+          <li><b>Star counts and licence</b> read in early November 2026 and rounded; they move daily.</li>
+          <li><b>Nothing was installed or run.</b> Every claim here is documentation, not hands-on testing &mdash; verify against your own machine before trusting it.</li>
+        </ul>
+      </div>
+      <div class="method__col">
+        <h4>Primary sources</h4>
+        <ul>
+          <li><a href="https://github.com/feder-cr/Jobs_Applier_AI_Agent_AIHawk">feder-cr/Jobs_Applier_AI_Agent_AIHawk</a></li>
+          <li><a href="https://github.com/Pickle-Pixel/ApplyPilot">Pickle-Pixel/ApplyPilot</a></li>
+          <li><a href="https://github.com/career-ops-hq/career-ops">career-ops-hq/career-ops</a> &middot; docs/SUPPORTED_CLIS.md</li>
+          <li><a href="https://github.com/vesaias/JobNavigator">vesaias/JobNavigator</a></li>
+          <li><a href="https://github.com/humancto/mr-jobs">humancto/mr-jobs</a></li>
+          <li><a href="https://github.com/Liam-Frost/AutoApply">Liam-Frost/AutoApply</a></li>
+          <li><a href="https://github.com/joeyspagnoli/agentic-job-applier">joeyspagnoli/agentic-job-applier</a></li>
+          <li><a href="https://github.com/joelkanyi/scout">joelkanyi/scout</a></li>
+          <li><a href="https://github.com/liruihan000/claude-job-auto-apply">liruihan000/claude-job-auto-apply</a></li>
+          <li><a href="https://github.com/applypack/applypack">applypack/applypack</a></li>
+          <li><a href="https://github.com/speedyapply/JobSpy">speedyapply/JobSpy</a></li>
+        </ul>
+      </div>
+      <div class="method__col">
+        <h4>What would change this</h4>
+        <ul>
+          <li><b>An Indian ATS story.</b> If a project adds Naukri or foundit submission, the geographic caveat shrinks and tier A becomes useful here.</li>
+          <li><b>AIHawk&rsquo;s rewrite is three days old.</b> Its reliability at scale is unproven; the star count is inherited from the 2024 LinkedIn-only tool.</li>
+          <li><b>Small projects rot fast.</b> Anything under roughly 50 stars in this table &mdash; MR.Jobs, agentic-job-applier, claude-job-auto-apply, scout &mdash; may be unmaintained by the time you read this.</li>
+          <li><b>Board terms change.</b> Automation that works today can be blocked next quarter; that risk sits with you, not the project.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Compiled 8 November 2026 &middot; 11 projects &middot; documentation review, not a hands-on test</span>
+    <span>Star counts approximate</span>
+  </footer>
+
+</div>
+
+</body>
+</html>
