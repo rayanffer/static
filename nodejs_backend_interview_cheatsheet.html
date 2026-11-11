@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="A beginner-friendly two-day Node.js backend developer interview revision cheatsheet covering JavaScript, Node.js, Express, databases, security, system design and coding.">
+<title>Node.js Backend Interview Cheatsheet | 2-Day Revision</title>
+<style>
+:root{--bg:#f5f7fb;--panel:#fff;--ink:#172033;--muted:#64748b;--line:#e2e8f0;--accent:#2563eb;--soft:#eff6ff;--green:#15803d;--code:#111827;--shadow:0 8px 24px rgba(15,23,42,.06)}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.65 Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+header{background:linear-gradient(130deg,#0f172a,#1e3a8a);color:#fff;padding:42px 22px 34px}header .wrap,main,.footer{max-width:1120px;margin:auto}
+.eyebrow{text-transform:uppercase;letter-spacing:.13em;font-size:12px;color:#bfdbfe;font-weight:700}
+h1{font-size:clamp(30px,5vw,48px);line-height:1.1;margin:12px 0}header p{color:#dbeafe;max-width:760px;margin:12px 0 0}
+.meta{display:flex;gap:10px;flex-wrap:wrap;margin-top:22px}.pill{border:1px solid #ffffff45;border-radius:999px;padding:6px 12px;font-size:13px;color:#eff6ff}
+main{padding:24px 18px 70px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 22px;position:sticky;top:0;z-index:5;background:rgba(245,247,251,.94);padding:12px 0;backdrop-filter:blur(8px)}
+input[type=search]{flex:1;min-width:220px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;font:inherit;background:#fff}
+button{border:1px solid var(--line);background:#fff;color:var(--ink);padding:10px 13px;border-radius:9px;font:inherit;cursor:pointer}button:hover{border-color:var(--accent);color:var(--accent)}
+.progress{background:#e2e8f0;height:8px;border-radius:99px;overflow:hidden;margin:8px 0 4px}.progress span{display:block;height:100%;width:0;background:#16a34a;transition:width .2s}
+.overview,.card,.section{background:var(--panel);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow)}
+.overview{padding:20px;margin-bottom:20px}.overview h2,.section h2{margin:0 0 10px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}.day{background:#f8fafc;border:1px solid var(--line);border-radius:11px;padding:14px}.day strong{display:block}.day small{color:var(--muted)}
+nav{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0 24px}nav a{font-size:13px;text-decoration:none;color:#1d4ed8;background:var(--soft);padding:7px 10px;border-radius:8px}
+.section{padding:22px;margin:18px 0;scroll-margin-top:82px}.section h2{font-size:24px}.lead{color:var(--muted);margin-top:-4px}
+.topic{border-top:1px solid var(--line);padding:14px 0}.topic:first-of-type{border-top:0}.topic h3{margin:0 0 6px;font-size:17px}.topic p{margin:5px 0}.topic ul,.topic ol{margin:7px 0;padding-left:22px}.topic li{margin:4px 0}
+.callout{background:#eff6ff;border-left:4px solid var(--accent);padding:12px 14px;border-radius:7px;margin:12px 0}.warn{background:#fff7ed;border-left-color:#ea580c}.good{background:#f0fdf4;border-left-color:#16a34a}
+table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{background:#f8fafc}
+code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace;background:#eef2f7;padding:2px 5px;border-radius:5px;font-size:.92em}pre{background:var(--code);color:#e5e7eb;padding:15px;border-radius:10px;overflow:auto;font-size:13px;line-height:1.55}pre code{background:none;color:inherit;padding:0}
+.checklist{list-style:none;padding:0!important}.checklist li{display:flex;gap:9px;align-items:flex-start;margin:8px 0}.checklist input{margin-top:6px;accent-color:#16a34a;transform:scale(1.08)}.checklist label{cursor:pointer}
+details{border:1px solid var(--line);border-radius:10px;padding:11px 13px;margin:9px 0}summary{font-weight:650;cursor:pointer}details p{margin:9px 0 2px}
+.tag{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#1d4ed8;background:#dbeafe;border-radius:5px;padding:3px 6px;font-weight:700}
+footer{color:var(--muted);text-align:center;padding:20px}
+@media(max-width:640px){header{padding:32px 18px}.section{padding:16px}.section h2{font-size:21px}table{display:block;overflow-x:auto;white-space:normal}}
+@media print{body{background:#fff;font-size:12px}header{background:#fff;color:#111;padding:15px 0}header p,.eyebrow{color:#333}.pill{color:#111;border-color:#aaa}.toolbar,nav,button{display:none!important}main{padding:0}.section,.overview{box-shadow:none;break-inside:avoid;border-color:#bbb}.section{margin:10px 0;padding:14px}details{break-inside:avoid}a{color:#111}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+<div class="eyebrow">Interview revision guide · beginner-friendly</div>
+<h1>Node.js Backend<br>Interview Cheatsheet</h1>
+<p>A practical, plain-English revision guide for a full-stack developer preparing for a backend-heavy Node.js interview in two days. Learn what each concept means, why it matters, and what interviewers may ask.</p>
+<div class="meta"><span class="pill">2-day crash revision</span><span class="pill">Node.js · Express · SQL · MongoDB</span><span class="pill">Junior-friendly explanations</span></div>
+</div></header>
+<main>
+<div class="toolbar">
+<input id="search" type="search" placeholder="Search a topic, e.g. event loop, JWT, indexes…" aria-label="Search topics">
+<button onclick="window.print()">Print / Save PDF</button>
+<button id="expand">Expand all</button>
+<button id="collapse">Collapse all</button>
+</div>
+<div class="overview">
+<h2>Your two-day plan</h2>
+<div class="grid">
+<div class="day"><strong>Day 1 · Core backend</strong><small>JavaScript (1h), Node internals (1.5h), Express and APIs (1h), databases (1.5h).</small></div>
+<div class="day"><strong>Day 2 · Production backend</strong><small>Security (1h), distributed systems (1h), system design (1.5h), coding practice (1.5h).</small></div>
+</div>
+<p><b>Progress:</b> <span id="count">0 of 55 topics checked</span></p><div class="progress"><span id="bar"></span></div>
+<div class="callout good"><b>How to revise:</b> For every topic, explain it in simple words, write or sketch a small example, then describe where you would use it in a real application. Do not aim to memorize definitions only.</div>
+</div>
+<nav>
+<a href="#js">JavaScript</a><a href="#node">Node.js internals</a><a href="#express">Express & APIs</a><a href="#db">Databases</a><a href="#security">Security</a><a href="#distributed">Distributed systems</a><a href="#design">System design</a><a href="#coding">Coding practice</a><a href="#quick">Quick questions</a>
+</nav>
+
+<section class="section" id="js">
+<h2>1. JavaScript essentials for backend</h2><p class="lead">Node.js runs JavaScript outside the browser. Strong JavaScript fundamentals make backend behavior easier to understand.</p>
+<div class="topic"><h3>Execution context and call stack</h3><p>An <b>execution context</b> is the environment in which JavaScript code runs. It keeps track of variables, scope and the code being executed. The <b>call stack</b> tracks which function is currently running.</p><pre><code>function first() { second(); }
+function second() { console.log("Hello"); }
+first();
+
+// Stack: first() → second() → console.log()
+// Functions return in reverse order.</code></pre><p><b>Interview question:</b> What happens when a function calls another function? The new function is pushed onto the stack. When it finishes, it is popped off.</p></div>
+<div class="topic"><h3>var, let and const; hoisting</h3><ul><li><code>var</code> is function-scoped and can be redeclared. Its declaration is hoisted and initialized with <code>undefined</code>.</li><li><code>let</code> and <code>const</code> are block-scoped. They are hoisted but cannot be accessed before declaration because of the temporal dead zone.</li><li><code>const</code> prevents reassignment, but an object or array stored in it can still be mutated.</li></ul><pre><code>console.log(a); // undefined
+var a = 10;
+
+// console.log(b); // ReferenceError
+let b = 20;
+
+const user = { name: "Sam" };
+user.name = "Lee"; // allowed</code></pre></div>
+<div class="topic"><h3>Closures and lexical scope</h3><p>A closure happens when a function remembers variables from the scope where it was created, even after that outer function has finished.</p><pre><code>function makeCounter() {
+  let count = 0;
+  return function () {
+    count += 1;
+    return count;
+  };
+}
+const counter = makeCounter();
+counter(); // 1
+counter(); // 2</code></pre><p><b>Where useful?</b> Private state, function factories, callbacks and middleware configuration.</p></div>
+<div class="topic"><h3>Promises and async/await</h3><p>A Promise represents a result that may be available later. It can be <b>pending</b>, <b>fulfilled</b> or <b>rejected</b>. <code>async/await</code> is syntax that makes promise-based code easier to read. It does not make a slow operation execute synchronously.</p><pre><code>async function getUser(id) {
+  try {
+    const response = await fetchUser(id);
+    return response;
+  } catch (error) {
+    throw new Error("Could not load user", { cause: error });
+  }
+}</code></pre><p>Remember: use <code>Promise.all()</code> for independent tasks that can run together. It rejects if any input promise rejects. Use <code>Promise.allSettled()</code> when you need every outcome.</p></div>
+<div class="topic"><h3>Event loop: microtasks and macrotasks</h3><p>JavaScript runs synchronous code on the call stack. When the stack is clear, the event loop coordinates queued callbacks. Promise handlers and <code>queueMicrotask()</code> are microtasks. Timers such as <code>setTimeout()</code> run through event-loop phases.</p><pre><code>console.log("A");
+setTimeout(() =&gt; console.log("timer"), 0);
+Promise.resolve().then(() =&gt; console.log("promise"));
+console.log("B");
+
+// A, B, promise, timer (typical ordering)</code></pre><p>In Node.js, also learn <code>process.nextTick()</code> and <code>setImmediate()</code>. Their exact ordering can depend on context. Avoid endlessly scheduling microtasks because they can starve I/O.</p></div>
+<div class="topic"><h3>this, call, apply and bind</h3><p>For a regular function, <code>this</code> depends on how the function is called. Arrow functions do not create their own <code>this</code>; they capture it from the surrounding scope.</p><ul><li><code>call(thisArg, a, b)</code>: invokes now with individual arguments.</li><li><code>apply(thisArg, [a, b])</code>: invokes now with arguments in an array.</li><li><code>bind(thisArg)</code>: returns a new function with a bound <code>this</code>.</li></ul></div>
+<div class="topic"><h3>Prototypes and inheritance</h3><p>JavaScript objects can inherit properties and methods from another object through the prototype chain. When a property is not found on an object, JavaScript checks its prototype.</p><pre><code>const animal = { speak() { return "sound"; } };
+const dog = Object.create(animal);
+dog.speak(); // "sound"</code></pre></div>
+<div class="topic"><h3>Shallow copy vs deep copy</h3><p>A shallow copy copies only the first level. Nested objects are still shared references. A deep copy also copies nested structures. <code>structuredClone()</code> supports many common data types, but not every possible value such as functions.</p><pre><code>const original = { profile: { city: "Mangalore" } };
+const shallow = { ...original };
+shallow.profile.city = "Bengaluru";
+console.log(original.profile.city); // Bengaluru
+
+const deep = structuredClone(original);</code></pre></div>
+<div class="topic"><h3>Debounce vs throttle</h3><p><b>Debounce</b> waits until calls stop for a chosen period. Good for search input. <b>Throttle</b> limits how often a function can run. Good for scroll or resize handlers.</p></div>
+<div class="topic"><h3>Memory and garbage collection</h3><p>V8 automatically reclaims memory that is no longer reachable. A memory leak occurs when code unintentionally keeps references to objects it no longer needs. Common causes include unremoved event listeners, unbounded caches, long-lived timers and retained request data.</p></div>
+</section>
+
+<section class="section" id="node">
+<h2>2. Node.js internals</h2><p class="lead">This is a high-value interview area. Understand the moving parts and how a request is processed.</p>
+<div class="topic"><h3>What is Node.js?</h3><p>Node.js is a JavaScript runtime built on Google's V8 engine. It lets JavaScript run outside a browser, commonly for APIs, scripts and real-time services. Node.js is especially effective for I/O-heavy work such as database calls and network requests.</p></div>
+<div class="topic"><h3>V8, libuv and the operating system</h3><ul><li><b>V8:</b> Executes JavaScript and manages its memory.</li><li><b>libuv:</b> Provides the event loop and cross-platform asynchronous I/O support. It also manages a worker pool for certain operations.</li><li><b>Operating system:</b> Handles many network and file operations using its underlying facilities.</li></ul><div class="callout"><b>Simple mental model:</b> Your JavaScript starts work, delegates suitable I/O to the runtime or operating system, and continues running. When the operation completes, its callback can be scheduled for JavaScript to process.</div></div>
+<div class="topic"><h3>Is Node.js single-threaded?</h3><p>JavaScript in a typical Node.js process runs on one main event-loop thread. That does not mean the whole runtime uses only one thread. The operating system handles asynchronous I/O, libuv has a worker pool for selected tasks, and you can create worker threads for CPU-heavy JavaScript.</p><p><b>Good use cases:</b> APIs, real-time apps and I/O-heavy services. CPU-heavy work on the main thread can block every request sharing that event loop.</p></div>
+<div class="topic"><h3>Event loop phases</h3><p>Know the broad purpose of these phases:</p><ol><li><b>Timers:</b> callbacks for expired <code>setTimeout</code> and <code>setInterval</code> timers.</li><li><b>Pending callbacks:</b> certain system-level callbacks deferred from a previous cycle.</li><li><b>Poll:</b> retrieves and processes I/O events and callbacks.</li><li><b>Check:</b> runs <code>setImmediate()</code> callbacks.</li><li><b>Close callbacks:</b> handles some close events, such as a socket closing.</li></ol><p>Node also processes microtasks between callback execution opportunities. Do not claim that a timer runs at an exact guaranteed millisecond; its delay is a minimum threshold, not a precise schedule.</p></div>
+<div class="topic"><h3>process.nextTick() vs setImmediate()</h3><p><code>process.nextTick()</code> schedules a callback to run after the current operation, before the event loop continues. <code>setImmediate()</code> schedules work for the check phase. Recursive <code>nextTick()</code> calls can starve I/O, so use them carefully.</p></div>
+<div class="topic"><h3>Thread pool and worker threads</h3><p>The libuv worker pool is used for certain tasks, including many filesystem operations, DNS lookup operations and cryptographic functions. It is not where every HTTP request is processed.</p><p><b>Worker Threads</b> run JavaScript in separate threads and are useful for CPU-intensive calculations. For normal network I/O, asynchronous APIs are usually the better choice.</p></div>
+<div class="topic"><h3>Cluster vs Worker Threads</h3><table><tr><th>Cluster</th><th>Worker Threads</th></tr><tr><td>Multiple Node.js processes, each with its own event loop and memory.</td><td>Multiple JavaScript threads inside one process.</td></tr><tr><td>Useful for using multiple CPU cores to serve requests.</td><td>Useful for CPU-heavy work and parallel computation.</td></tr><tr><td>Processes do not share normal in-memory objects.</td><td>Can communicate via messages and can share memory using supported mechanisms.</td></tr></table></div>
+<div class="topic"><h3>Streams, buffers and backpressure</h3><p>A <b>Buffer</b> represents binary data. A <b>Stream</b> lets you process data piece by piece instead of loading the entire file into memory.</p><ul><li>Readable: data can be read from it.</li><li>Writable: data can be written to it.</li><li>Duplex: readable and writable.</li><li>Transform: duplex stream that changes data as it passes through.</li></ul><p><b>Backpressure</b> happens when a producer sends data faster than a consumer can handle it. Streams help regulate flow. Use <code>pipeline()</code> to connect streams and handle errors and cleanup more safely.</p><pre><code>const fs = require("node:fs");
+const { pipeline } = require("node:stream");
+
+pipeline(
+  fs.createReadStream("large-input.csv"),
+  fs.createWriteStream("copy.csv"),
+  (error) =&gt; {
+    if (error) console.error("Pipeline failed:", error);
+    else console.log("Copy complete");
+  }
+);</code></pre></div>
+<div class="topic"><h3>Graceful shutdown</h3><p>When a process receives a shutdown signal, stop accepting new requests, allow in-flight work to finish within a time limit, close database and message-queue connections, then exit. This avoids dropping requests during deployments.</p><pre><code>process.on("SIGTERM", async () =&gt; {
+  server.close(async () =&gt; {
+    await database.close();
+    process.exit(0);
+  });
+
+  setTimeout(() =&gt; process.exit(1), 10000).unref();
+});</code></pre><p>This is a simplified illustration. Production code should also handle repeated signals, errors and the timeout carefully.</p></div>
+</section>
+
+<section class="section" id="express">
+<h2>3. Express.js and REST API engineering</h2><p class="lead">Know how a request travels through your application and how to keep API code maintainable.</p>
+<div class="topic"><h3>Express middleware</h3><p>Middleware is a function that runs during the request-response cycle. It can inspect or modify the request, send a response, or call <code>next()</code> to pass control onward.</p><pre><code>function requestLogger(req, res, next) {
+  console.log(req.method, req.path);
+  next();
+}
+
+app.use(requestLogger); // register before routes</code></pre><p>Order matters. Authentication and validation middleware should run before protected route handlers. Error middleware has four parameters: <code>(err, req, res, next)</code>.</p></div>
+<div class="topic"><h3>Controller, service and repository layers</h3><ul><li><b>Route:</b> maps URL and HTTP method to a handler.</li><li><b>Middleware:</b> cross-cutting work such as authentication.</li><li><b>Controller:</b> handles HTTP details and sends the response.</li><li><b>Service:</b> contains business rules.</li><li><b>Repository/data layer:</b> reads and writes data.</li></ul><p>Separating these responsibilities makes code easier to test and change. Avoid creating layers that add no value to a small application.</p></div>
+<div class="topic"><h3>Centralized error handling</h3><p>Instead of writing response logic for every error, pass errors to one error handler. Return safe, consistent messages to clients and log useful details internally. Never expose stack traces or secrets in production responses.</p><pre><code>app.use((err, req, res, next) =&gt; {
+  const status = err.statusCode || 500;
+  console.error(err); // use structured logging in production
+  res.status(status).json({
+    error: status === 500 ? "Internal server error" : err.message
+  });
+});</code></pre></div>
+<div class="topic"><h3>HTTP methods and status codes</h3><table><tr><th>Method</th><th>Typical use</th></tr><tr><td>GET</td><td>Read a resource. Should not change server state.</td></tr><tr><td>POST</td><td>Create a resource or trigger an operation.</td></tr><tr><td>PUT</td><td>Replace a resource. Usually idempotent.</td></tr><tr><td>PATCH</td><td>Partially update a resource.</td></tr><tr><td>DELETE</td><td>Delete a resource. Intended to be idempotent.</td></tr></table><p>Useful status codes: 200 OK, 201 Created, 204 No Content, 400 Bad Request, 401 Unauthenticated, 403 Forbidden, 404 Not Found, 409 Conflict, 422 Unprocessable Content, 429 Too Many Requests, 500 Internal Server Error, 503 Service Unavailable.</p></div>
+<div class="topic"><h3>REST, idempotency and API design</h3><p>REST uses resources and standard HTTP semantics. An operation is <b>idempotent</b> if repeating the same request has the same intended effect as doing it once. GET, PUT and DELETE are designed to be idempotent; POST is not automatically idempotent.</p><p>For operations such as payments, accept an idempotency key, store the result associated with that key, and return the same result for retries. Protect the key with a uniqueness constraint or equivalent atomic mechanism.</p></div>
+<div class="topic"><h3>Pagination: offset vs cursor</h3><pre><code>// Offset pagination
+GET /users?limit=20&amp;offset=40
+
+// Cursor pagination
+GET /users?limit=20&amp;after=eyJpZCI6MTIzfQ</code></pre><p>Offset pagination is simple but large offsets can become slow and rows can shift between pages as data changes. Cursor pagination uses a stable sort key and is usually better for large, frequently changing datasets. Always use a deterministic order, such as creation time plus unique ID.</p></div>
+<div class="topic"><h3>Validation, rate limiting and CORS</h3><ul><li><b>Validation:</b> check types, required fields, formats, ranges and business rules at the API boundary. Libraries include Zod and Joi.</li><li><b>Rate limiting:</b> restrict requests per user, IP or API key over a time window. A shared store such as Redis is useful across multiple app instances.</li><li><b>CORS:</b> browser security policy controlling which origins can read cross-origin responses. It is not authentication. Preflight requests use OPTIONS to check whether the actual request is allowed.</li></ul></div>
+<div class="topic"><h3>Timeouts and external API calls</h3><p>Set timeouts so a slow dependency does not hold resources forever. Retry only errors that may recover, use exponential backoff with jitter, and cap attempts. Do not blindly retry non-idempotent operations such as payments unless you have an idempotency strategy.</p></div>
+</section>
+
+<section class="section" id="db">
+<h2>4. Databases: SQL, MongoDB and Redis</h2><p class="lead">You should know how to model data, protect consistency and investigate slow queries.</p>
+<div class="topic"><h3>SQL joins</h3><ul><li><b>INNER JOIN:</b> only rows with matches in both tables.</li><li><b>LEFT JOIN:</b> every row from the left table plus matching right-side data; unmatched right values are NULL.</li><li><b>RIGHT JOIN:</b> every row from the right table plus matching left-side data.</li></ul><pre><code>SELECT users.name, orders.total
+FROM users
+LEFT JOIN orders ON orders.user_id = users.id;</code></pre></div>
+<div class="topic"><h3>Indexes</h3><p>An index is an extra data structure that helps a database find rows without scanning the whole table. It speeds up suitable reads but uses storage and adds work to inserts, updates and deletes.</p><p>A composite index covers multiple columns. Column order matters: an index on <code>(status, created_at)</code> is generally useful for queries filtering by <code>status</code>, and often by both columns. Check the query plan rather than guessing.</p></div>
+<div class="topic"><h3>ACID transactions</h3><ul><li><b>Atomicity:</b> all operations succeed or the transaction is rolled back.</li><li><b>Consistency:</b> constraints and rules remain valid.</li><li><b>Isolation:</b> concurrent transactions do not interfere beyond the configured isolation guarantees.</li><li><b>Durability:</b> committed data survives failures according to the database's guarantees.</li></ul><p>Use transactions when multiple database changes must succeed or fail together, such as creating an order and reserving inventory.</p></div>
+<div class="topic"><h3>Isolation levels and deadlocks</h3><p>Isolation levels control what one transaction can observe from another. Common SQL levels include Read Uncommitted, Read Committed, Repeatable Read and Serializable. Exact behavior differs by database.</p><p>A deadlock occurs when transactions hold locks the others need, creating a cycle. Databases detect and abort one transaction. Reduce risk by accessing records in a consistent order, keeping transactions short and retrying safe aborted transactions.</p></div>
+<div class="topic"><h3>Normalization and query optimization</h3><p>Normalization organizes relational data to reduce duplication and update anomalies. Use joins to retrieve related data. To investigate slow SQL, inspect the execution plan with <code>EXPLAIN</code> or the database's analyze option, check scans and joins, and confirm indexes match real query patterns.</p></div>
+<div class="topic"><h3>Connection pooling</h3><p>Opening a new database connection for every request is expensive. A connection pool reuses a limited number of connections. Set pool limits sensibly: across many application instances, total possible connections can exceed the database's capacity.</p></div>
+<div class="topic"><h3>MongoDB: documents and schema design</h3><p>MongoDB stores BSON documents in collections. <b>Embed</b> related data when it is usually read and updated together and its size is bounded. <b>Reference</b> data when it is large, shared by many records or independently managed. Model around your common queries.</p></div>
+<div class="topic"><h3>MongoDB aggregation pipeline</h3><p>An aggregation pipeline passes documents through stages to filter, reshape, group and calculate results.</p><pre><code>db.orders.aggregate([
+  { $match: { status: "paid" } },
+  { $group: {
+      _id: "$customerId",
+      totalSpent: { $sum: "$amount" }
+  }},
+  { $sort: { totalSpent: -1 } }
+]);</code></pre><p>Common stages: <code>$match</code>, <code>$project</code>, <code>$group</code>, <code>$sort</code>, <code>$limit</code>, <code>$lookup</code> and <code>$unwind</code>. Filter early where possible and inspect query performance.</p></div>
+<div class="topic"><h3>MongoDB indexes, replica sets and sharding</h3><p>Indexes speed up queries that match their keys. A replica set keeps multiple copies of data for availability and failover. Sharding distributes data across machines when a single deployment cannot handle the data volume or throughput. Shard-key choice is important because it affects distribution and query routing.</p></div>
+<div class="topic"><h3>Redis and caching</h3><p>Redis is an in-memory data store commonly used for caching, counters, sessions, queues and coordination. It is fast, but cache data can be stale or lost depending on configuration. Your database should generally remain the source of truth for durable business records.</p><p><b>Cache-aside:</b> check cache first; on a miss, read the database and populate the cache. On writes, update the database and invalidate or refresh the cache. Set a TTL so old entries expire.</p><div class="callout warn"><b>Cache stampede:</b> many requests miss the same expired key and hit the database together. Mitigate with request coalescing, short randomized TTL variation, locks or stale-while-revalidate strategies.</div></div>
+</section>
+
+<section class="section" id="security">
+<h2>5. Authentication and security</h2><p class="lead">Authentication asks who you are. Authorization asks what you are allowed to do.</p>
+<div class="topic"><h3>JWT authentication flow</h3><ol><li>User submits credentials over HTTPS.</li><li>Server verifies credentials.</li><li>Server issues a signed access token, and often a refresh token.</li><li>Client sends the access token with protected requests.</li><li>Server verifies signature, expiry and relevant claims before allowing access.</li></ol><p>A JWT is usually signed, not encrypted. Do not put passwords or sensitive personal information in its payload.</p></div>
+<div class="topic"><h3>Access tokens and refresh tokens</h3><p>Access tokens are short-lived credentials used to call APIs. Refresh tokens last longer and are used to obtain new access tokens. Store refresh tokens carefully, rotate them on use, detect reuse where possible, and provide a way to revoke sessions. Cookie-based storage needs appropriate Secure, HttpOnly and SameSite settings plus CSRF protection based on the design.</p></div>
+<div class="topic"><h3>OAuth 2.0 and OpenID Connect</h3><p>OAuth 2.0 is an authorization framework that lets an application obtain limited access to a resource. OpenID Connect adds an identity layer on top of OAuth 2.0 so the client can authenticate a user. For modern user sign-in, use Authorization Code Flow with PKCE where appropriate.</p></div>
+<div class="topic"><h3>RBAC and password hashing</h3><p><b>RBAC</b> assigns permissions to roles, such as admin, manager and user. The application checks whether the authenticated user has the required permission for an action.</p><p>Never store plain-text passwords. Use a password-hashing algorithm designed for passwords, such as Argon2id or bcrypt, with appropriate parameters and unique salts. Hashing is one-way; encryption is reversible with a key.</p></div>
+<div class="topic"><h3>Common web vulnerabilities</h3><ul><li><b>SQL injection:</b> attacker changes a query through untrusted input. Use parameterized queries.</li><li><b>NoSQL injection:</b> untrusted input changes query operators or structure. Validate input and avoid passing raw objects into database filters.</li><li><b>XSS:</b> attacker-controlled script runs in a user's browser. Escape output, sanitize appropriate HTML and use a Content Security Policy.</li><li><b>CSRF:</b> tricks a browser into sending an authenticated request. Use CSRF protections where cookie-based authentication requires them, plus SameSite cookies and origin checks.</li><li><b>Broken access control:</b> users access records or actions they should not. Check permissions on the server for every protected operation.</li></ul></div>
+<div class="topic"><h3>HTTPS, encryption and secrets</h3><p>HTTPS protects data in transit using TLS. Encryption at rest protects stored data. Keep API keys, database passwords and signing secrets out of source code. Use a secrets manager or protected deployment environment, rotate credentials and grant only the permissions required.</p></div>
+</section>
+
+<section class="section" id="distributed">
+<h2>6. Microservices and distributed systems</h2><p class="lead">A distributed system has multiple components communicating over a network. Networks fail, messages can be delayed and a request can succeed even when the caller never receives the response.</p>
+<div class="topic"><h3>Monolith vs microservices</h3><p>A <b>monolith</b> is one deployable application. It is often simpler to develop, test and operate early on. <b>Microservices</b> split a system into independently deployable services around business capabilities. They can improve independent scaling and ownership, but add network failures, deployment complexity, observability needs and data-consistency challenges. Do not choose microservices just because they sound advanced.</p></div>
+<div class="topic"><h3>Synchronous vs asynchronous communication</h3><p><b>Synchronous:</b> service A calls service B and waits for a response, commonly over HTTP or gRPC. It is straightforward but couples availability and latency.</p><p><b>Asynchronous:</b> service A publishes a message and continues. A consumer processes it later. This reduces direct coupling but introduces eventual consistency, retries and duplicate-delivery concerns.</p></div>
+<div class="topic"><h3>Kafka vs RabbitMQ</h3><table><tr><th>Kafka</th><th>RabbitMQ</th></tr><tr><td>Distributed event log with retained, ordered records per partition.</td><td>Message broker with exchanges, queues and routing.</td></tr><tr><td>Useful for event streams, replay and high-throughput data pipelines.</td><td>Useful for task queues and flexible message routing.</td></tr><tr><td>Consumers track offsets.</td><td>Consumers acknowledge messages.</td></tr></table><p>Both have more capabilities than this short comparison suggests. Choose based on delivery, routing, replay and operational needs.</p></div>
+<div class="topic"><h3>Delivery guarantees and idempotent consumers</h3><p>At-most-once can lose messages but avoids redelivery. At-least-once retries until acknowledged but can deliver duplicates. Exactly-once claims usually have a specific scope and require careful design.</p><p>Make consumers idempotent: processing the same message twice should not create duplicate business effects. Store a unique message or operation ID and enforce uniqueness transactionally.</p></div>
+<div class="topic"><h3>Retries, exponential backoff and dead-letter queues</h3><p>Retry temporary failures with increasing delays, add random jitter, and set a maximum attempt count. Do not retry permanent validation errors. After repeated failures, move the message to a dead-letter queue (DLQ) for inspection and controlled replay.</p></div>
+<div class="topic"><h3>Circuit breaker</h3><p>A circuit breaker stops calls to a dependency that is repeatedly failing. It commonly has three states: closed (calls flow), open (calls fail fast), and half-open (a few test calls are allowed). It prevents one unhealthy dependency from exhausting resources across your application.</p></div>
+<div class="topic"><h3>Saga and eventual consistency</h3><p>A saga coordinates a business transaction across multiple services as a sequence of local transactions. If a later step fails, compensating actions try to undo earlier business effects. Eventual consistency means replicas or services may temporarily disagree but are expected to converge.</p></div>
+</section>
+
+<section class="section" id="design">
+<h2>7. Backend system design essentials</h2><p class="lead">In an interview, clarify requirements first, draw the main components, describe data storage and APIs, then discuss failure cases and scaling.</p>
+<div class="topic"><h3>A repeatable system design approach</h3><ol><li><b>Clarify requirements:</b> users, main features, traffic, latency and availability expectations.</li><li><b>Define APIs:</b> identify key operations and request/response shapes.</li><li><b>Model data:</b> entities, relationships, indexes and constraints.</li><li><b>Draw components:</b> client, load balancer, API service, database, cache, queue and workers.</li><li><b>Trace a request:</b> explain what happens from request to response.</li><li><b>Handle failures:</b> timeouts, retries, duplicates, partial failure and recovery.</li><li><b>Scale:</b> identify bottlenecks and scale only the parts that need it.</li></ol></div>
+<div class="topic"><h3>Load balancing and horizontal scaling</h3><p>A load balancer distributes incoming requests across application instances. Vertical scaling adds resources to one machine. Horizontal scaling adds more machines or instances. For horizontal scaling, avoid relying on process-local sessions or caches unless they are intentionally shared or replicated.</p></div>
+<div class="topic"><h3>Background jobs and queues</h3><p>Move slow, non-interactive tasks out of the request path. The API validates a request, stores the job or publishes a message, and returns a job ID or accepted response. A worker processes it, records status and retries recoverable failures.</p></div>
+<div class="topic"><h3>Four systems to practice</h3>
+<details><summary>1. E-commerce backend</summary><p><b>Core entities:</b> users, products, inventory, carts, orders and payments.</p><p><b>Important concerns:</b> reserve inventory safely, make payment requests idempotent, use transactions for related database updates, and handle payment-provider callbacks. Do not assume a payment and database transaction can be one atomic transaction across systems.</p><p><b>Possible components:</b> API service, relational database, Redis cache, payment provider, queue and notification worker.</p></details>
+<details><summary>2. Chat application</summary><p><b>Core entities:</b> users, conversations, participants and messages.</p><p><b>Important concerns:</b> WebSocket connections, message persistence, ordering within a conversation, reconnect behavior, delivery/read status and offline notifications.</p><p><b>Possible components:</b> WebSocket gateway, message service, database, Redis for presence or coordination, and queue for notifications.</p></details>
+<details><summary>3. Notification service</summary><p><b>Flow:</b> producer creates a notification event, queue stores it, worker selects email/SMS/push provider, and delivery result is recorded.</p><p><b>Important concerns:</b> retries, DLQ, provider timeouts, duplicate prevention, user preferences, templates and delivery status.</p></details>
+<details><summary>4. URL shortener</summary><p><b>Flow:</b> client submits long URL, service creates a unique short code, database stores mapping, and redirect endpoint looks it up.</p><p><b>Important concerns:</b> code collision, unique constraint, expiration, abuse prevention, caching hot links and analytics. Use a fast lookup index on the short code.</p></details>
+</div>
+<div class="topic"><h3>Other terms to explain briefly</h3><ul><li><b>API Gateway:</b> entry point for routing, authentication and cross-cutting API policies.</li><li><b>Service discovery:</b> how services find the current network location of other services.</li><li><b>Replication:</b> keeping copies of data on multiple database nodes.</li><li><b>Partitioning:</b> splitting a large table or dataset into smaller pieces.</li><li><b>Sharding:</b> distributing pieces of a dataset across multiple machines.</li><li><b>Observability:</b> logs, metrics and traces used to understand system behavior.</li></ul></div>
+</section>
+
+<section class="section" id="coding">
+<h2>8. Practical coding revision</h2><p class="lead">Try each problem before looking at a solution. You should be able to explain edge cases and time/space complexity.</p>
+<div class="topic"><h3>1. Promise.all (simplified)</h3><p>Accept an array of promises or values. Resolve with results in input order when all succeed. Reject as soon as one rejects. Handle an empty array by resolving to an empty array.</p><pre><code>function myPromiseAll(items) {
+  return new Promise((resolve, reject) =&gt; {
+    const values = [];
+    let completed = 0;
+
+    if (items.length === 0) return resolve([]);
+
+    items.forEach((item, index) =&gt; {
+      Promise.resolve(item).then(value =&gt; {
+        values[index] = value;
+        completed++;
+        if (completed === items.length) resolve(values);
+      }, reject);
+    });
+  });
+}</code></pre><p>This illustrates the core behavior. Native Promise.all also handles general iterables and specification details.</p></div>
+<div class="topic"><h3>2. Debounce</h3><p>Only run the function after calls have stopped for the chosen delay.</p><pre><code>function debounce(fn, delay) {
+  let timer;
+  return function (...args) {
+    clearTimeout(timer);
+    timer = setTimeout(() =&gt; fn.apply(this, args), delay);
+  };
+}</code></pre></div>
+<div class="topic"><h3>3. Retry with exponential backoff</h3><pre><code>async function retry(fn, attempts = 3, baseDelay = 200) {
+  let lastError;
+
+  for (let i = 0; i &lt; attempts; i++) {
+    try {
+      return await fn();
+    } catch (error) {
+      lastError = error;
+      if (i === attempts - 1) break;
+      const delay = baseDelay * 2 ** i;
+      await new Promise(resolve =&gt; setTimeout(resolve, delay));
+    }
+  }
+  throw lastError;
+}</code></pre><p>Production retry code should add jitter, classify retryable errors and respect an overall timeout.</p></div>
+<div class="topic"><h3>4. Simple in-memory rate limiter</h3><pre><code>function createRateLimiter({ limit, windowMs }) {
+  const requests = new Map();
+
+  return function rateLimit(req, res, next) {
+    const key = req.ip;
+    const now = Date.now();
+    const entry = requests.get(key);
+
+    if (!entry || now - entry.start &gt;= windowMs) {
+      requests.set(key, { start: now, count: 1 });
+      return next();
+    }
+
+    if (entry.count &gt;= limit) {
+      return res.status(429).json({ error: "Too many requests" });
+    }
+
+    entry.count++;
+    next();
+  };
+}</code></pre><p>This is only suitable as a learning example or for a single process. The map grows unless expired entries are cleaned up, and multiple instances need a shared atomic store such as Redis.</p></div>
+<div class="topic"><h3>5. Concurrent task queue</h3><p>Build a function that accepts tasks and a concurrency limit. At most N tasks should run at once. Preserve result order, and decide whether one failure should stop the queue or be returned as an individual result.</p></div>
+<div class="topic"><h3>6. Custom EventEmitter</h3><p>Implement <code>on(event, callback)</code>, <code>off(event, callback)</code>, <code>emit(event, ...args)</code> and optionally <code>once()</code>. Think about duplicate listeners, removing listeners during emission and memory cleanup.</p></div>
+<div class="topic"><h3>7. Express authentication middleware</h3><pre><code>function requireAuth(req, res, next) {
+  const header = req.headers.authorization;
+  const token = header?.startsWith("Bearer ")
+    ? header.slice(7)
+    : null;
+
+  if (!token) {
+    return res.status(401).json({ error: "Unauthenticated" });
+  }
+
+  try {
+    req.user = verifyToken(token); // use a trusted JWT library
+    next();
+  } catch {
+    res.status(401).json({ error: "Invalid or expired token" });
+  }
+}</code></pre><p>Do not write your own cryptographic JWT verification. Validate signature, allowed algorithm, issuer, audience and expiry using a maintained library and trusted configuration.</p></div>
+<div class="topic"><h3>8. SQL: second-highest distinct salary</h3><pre><code>SELECT MAX(salary) AS second_highest_salary
+FROM employees
+WHERE salary &lt; (
+  SELECT MAX(salary) FROM employees
+);</code></pre><p>This returns NULL if there is no second distinct salary. Be ready to solve variants using <code>DENSE_RANK()</code>.</p></div>
+<div class="topic"><h3>9. Array flattening and grouping</h3><pre><code>const nested = [1, [2, [3, 4]]];
+const flat = nested.flat(Infinity);
+
+// Group records by a property
+const users = [
+  { name: "A", team: "red" },
+  { name: "B", team: "blue" },
+  { name: "C", team: "red" }
+];
+
+const grouped = Object.groupBy(users, user =&gt; user.team);</code></pre><p>Know how to implement these manually too, using recursion or <code>reduce()</code>, because interviewers may ask you not to use built-in helpers.</p></div>
+</section>
+
+<section class="section" id="quick">
+<h2>9. Quick-fire interview questions</h2><p class="lead">Practice answering each in 30–60 seconds. Expand to reveal a short answer.</p>
+<details><summary>How does Node.js handle many requests with one main thread?</summary><p>It uses non-blocking I/O. The main thread starts work and does not wait for most I/O operations to finish. When results are ready, callbacks are scheduled for JavaScript to process. CPU-heavy JavaScript can still block the event loop.</p></details>
+<details><summary>Why should we use streams for large files?</summary><p>Streams process chunks of data rather than loading the entire file into memory. They reduce memory pressure and can apply backpressure when the destination is slower than the source.</p></details>
+<details><summary>Why is a database index not always good?</summary><p>Indexes consume storage and make writes more expensive because the database must maintain them. An index helps only when its structure matches useful query patterns.</p></details>
+<details><summary>What is the difference between 401 and 403?</summary><p>401 means the request lacks valid authentication. 403 means the server understood the identity or request but refuses access due to permissions or policy.</p></details>
+<details><summary>How do you prevent duplicate payment processing?</summary><p>Use an idempotency key, persist its status and result, enforce uniqueness atomically, and make provider callbacks safe to process more than once.</p></details>
+<details><summary>What happens if Redis goes down?</summary><p>It depends on its role. If it is only a cache, fall back to the database carefully and protect it from a traffic spike. If it stores sessions, locks or queue data, the impact is greater and needs a specific recovery strategy.</p></details>
+<details><summary>When would you choose a queue instead of an HTTP call?</summary><p>Use a queue when work can happen asynchronously, should be retried, or needs buffering during traffic spikes. Use a direct HTTP call when the caller needs an immediate response and synchronous coupling is acceptable.</p></details>
+<details><summary>How would you debug a slow API?</summary><p>Measure request latency, inspect logs and traces, identify time spent in application code versus dependencies, inspect database query plans, check connection pools and external API latency, then profile CPU or memory if needed.</p></details>
+<details><summary>What is the difference between horizontal and vertical scaling?</summary><p>Vertical scaling increases resources on one machine. Horizontal scaling adds more instances. Horizontal scaling can improve capacity and resilience but requires handling shared state, load balancing and coordination.</p></details>
+<details><summary>What is eventual consistency?</summary><p>Different copies or services may temporarily show different data after an update, but they are expected to converge over time. Applications must account for that delay.</p></details>
+</section>
+
+<section class="section" id="last-minute">
+<h2>10. Last-minute interview checklist</h2>
+<ul class="checklist" id="finalChecks">
+<li><input type="checkbox"><label>I can draw and explain the Node.js event loop.</label></li>
+<li><input type="checkbox"><label>I can explain how a request moves through Express middleware.</label></li>
+<li><input type="checkbox"><label>I can explain JWT access and refresh token flows.</label></li>
+<li><input type="checkbox"><label>I understand SQL joins, indexes and transactions.</label></li>
+<li><input type="checkbox"><label>I can explain MongoDB aggregation and schema design.</label></li>
+<li><input type="checkbox"><label>I can explain Redis cache-aside and invalidation.</label></li>
+<li><input type="checkbox"><label>I understand retries, idempotency and message queues.</label></li>
+<li><input type="checkbox"><label>I can sketch an e-commerce or notification backend.</label></li>
+<li><input type="checkbox"><label>I have practised at least four coding exercises without copying.</label></li>
+<li><input type="checkbox"><label>I can describe two production bugs and how I solved them.</label></li>
+<li><input type="checkbox"><label>I can explain one architecture decision and its trade-offs.</label></li>
+</ul>
+<div class="callout good"><b>Interview answer formula:</b> Define the concept in one sentence → explain how it works → give a practical example → mention one trade-off or failure case. This makes even a short answer sound clear and experienced.</div>
+</section>
+<footer>Built as a focused revision reference. Use official Node.js, Express and database documentation for version-specific details.</footer>
+</main>
+<script>
+const search = document.getElementById('search');
+const sections = [...document.querySelectorAll('.section')];
+search.addEventListener('input', () => {
+  const q = search.value.trim().toLowerCase();
+  sections.forEach(section => {
+    let visible = false;
+    section.querySelectorAll('.topic, details').forEach(item => {
+      const match = !q || item.innerText.toLowerCase().includes(q);
+      item.hidden = !match;
+      if (match) visible = true;
+    });
+    const hasDirectIntro = section.querySelector('.lead')?.innerText.toLowerCase().includes(q);
+    section.hidden = !!q && !visible && !hasDirectIntro;
+  });
+});
+document.getElementById('expand').addEventListener('click', () => document.querySelectorAll('details').forEach(d => d.open = true));
+document.getElementById('collapse').addEventListener('click', () => document.querySelectorAll('details').forEach(d => d.open = false));
+const checks = [...document.querySelectorAll('#finalChecks input')];
+checks.forEach(c => c.addEventListener('change', updateChecks));
+function updateChecks() {
+  const done = checks.filter(c => c.checked).length;
+  document.getElementById('count').textContent = `${done} of ${checks.length} final checklist items complete`;
+  document.getElementById('bar').style.width = `${done / checks.length * 100}%`;
+}
+</script>
+</body>
+</html>
