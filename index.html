@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>static — pages</title>
+<style>
+:root{--bg:#f6f5f1;--fg:#2b2b2b;--dim:#9a978f;--card:#ebe9e2;--acc:#c2410c;--ok:#15803d;--bad:#dc2626;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17181c;--fg:#d8d6cf;--dim:#6b6a66;--card:#22242a;--acc:#f59e0b;--ok:#4ade80;--bad:#f87171}}
+:root[data-theme="dark"]{--bg:#17181c;--fg:#d8d6cf;--dim:#6b6a66;--card:#22242a;--acc:#f59e0b;--ok:#4ade80;--bad:#f87171}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px ui-monospace,Menlo,Consolas,monospace}
+header{display:flex;justify-content:space-between;padding:16px 24px;align-items:center}
+header b{color:var(--acc);font-size:18px}header a{color:var(--dim);text-decoration:none;margin-left:16px}header a:hover{color:var(--acc)}
+main{max-width:900px;margin:0 auto;padding:8px 20px 60px}
+h2{font-weight:600;margin:8px 0 4px}.dim{color:var(--dim)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px;margin-top:16px}
+.card{background:var(--card);border-radius:8px;padding:14px;cursor:pointer;border:1px solid transparent;text-decoration:none;color:inherit;display:block}
+.card:hover,.card:focus-visible{border-color:var(--acc);outline:none}
+.card .t{font-size:16px;margin-bottom:4px;word-break:break-word}
+.card .f{font-size:12px;color:var(--dim);word-break:break-all}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+button,input{font:inherit;background:var(--card);color:var(--fg);border:1px solid var(--dim);border-radius:6px;padding:6px 12px}
+button{cursor:pointer}button.p{background:var(--acc);color:var(--bg);border-color:var(--acc)}
+input{min-width:0;flex:1;cursor:text}input::placeholder{color:var(--dim)}
+.bar{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0;align-items:center}
+.tag{font-size:12px;padding:1px 8px;border-radius:10px;background:var(--bg);color:var(--dim);white-space:nowrap}
+.sk{height:92px;border-radius:8px;background:var(--card);animation:pl 1.2s ease-in-out infinite}
+@keyframes pl{50%{opacity:.45}}
+#msg{min-height:1.4em}#msg a{color:var(--acc)}
+.none{color:var(--dim);margin-top:20px}
+</style></head><body>
+<header><b>&lt;/&gt; static</b><span><a href="https://github.com/rayanffer/static" target="_blank" rel="noopener">repo</a></span></header>
+<main>
+  <h2>pages</h2>
+  <div class="dim" id="sub">reading the repository…</div>
+  <div class="bar">
+    <input id="q" type="search" placeholder="filter pages…" autocomplete="off" spellcheck="false" aria-label="filter pages">
+    <button id="r" class="p" type="button">refresh</button>
+    <span class="tag" id="count"></span>
+  </div>
+  <div class="grid" id="grid"></div>
+  <p id="msg"></p>
+</main>
+<script>
+(function(){
+  "use strict";
+  var OWNER = "rayanffer", REPO = "static", SELF = "index.html";
+  var API = "https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/";
+  var grid = document.getElementById("grid");
+  var msg = document.getElementById("msg");
+  var sub = document.getElementById("sub");
+  var count = document.getElementById("count");
+  var q = document.getElementById("q");
+  var btn = document.getElementById("r");
+  var pages = [];
+  var busy = false;
+
+  function pretty(name){
+    return name.replace(/\.html?$/i, "").replace(/[-_.]+/g, " ").replace(/\s+/g, " ").trim()
+      .replace(/\b[a-z]/g, function(c){ return c.toUpperCase(); }) || name;
+  }
+  function kb(b){
+    if (typeof b !== "number") return "";
+    if (b < 1024) return b + " B";
+    var k = b / 1024;
+    return (k < 10 ? k.toFixed(1) : Math.round(k)) + " KB";
+  }
+  function esc(s){
+    return String(s).replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[c];
+    });
+  }
+
+  // One cheap read per file (raw host, not the rate-limited API) to pick up its <title>.
+  function titleOf(file){
+    if (!file.download_url) return Promise.resolve(null);
+    return fetch(file.download_url, {cache: "no-store"})
+      .then(function(r){ return r.ok ? r.text() : null; })
+      .then(function(t){
+        if (!t) return null;
+        var m = t.match(/<title[^>]*>([\s\S]{1,160}?)<\/title>/i);
+        return m ? m[1].replace(/\s+/g, " ").trim() : null;
+      })
+      .catch(function(){ return null; });
+  }
+  function withTitles(list){
+    var out = list.map(function(f){ return {name: f.name, size: f.size, title: null}; });
+    var i = 0;
+    function worker(){
+      if (i >= list.length) return Promise.resolve();
+      var k = i++;
+      return titleOf(list[k]).then(function(t){
+        if (t) out[k].title = t;
+        return worker();
+      });
+    }
+    var workers = [];
+    for (var w = 0; w < Math.min(4, list.length); w++) workers.push(worker());
+    return Promise.all(workers).then(function(){ return out; });
+  }
+
+  function render(){
+    var term = q.value.trim().toLowerCase();
+    var shown = pages.filter(function(p){
+      if (!term) return true;
+      return (p.name + " " + (p.title || "") + " " + pretty(p.name)).toLowerCase().indexOf(term) !== -1;
+    });
+    count.textContent = shown.length + (shown.length === 1 ? " page" : " pages");
+    if (!shown.length){
+      grid.innerHTML = "";
+      msg.innerHTML = pages.length
+        ? '<span class="none">nothing matches “' + esc(q.value.trim()) + '”.</span>'
+        : '<span class="none">this repository has no html pages yet.</span>';
+      return;
+    }
+    msg.innerHTML = "";
+    grid.innerHTML = shown.map(function(p){
+      var href = "./" + encodeURIComponent(p.name);
+      return '<a class="card" href="' + esc(href) + '">' +
+        '<div class="t">' + esc(p.title || pretty(p.name)) + '</div>' +
+        '<div class="row" style="margin-top:8px">' +
+          '<span class="f">' + esc(p.name) + '</span>' +
+          '<span class="tag">' + esc(kb(p.size)) + '</span>' +
+        '</div></a>';
+    }).join("");
+  }
+
+  function skeleton(){
+    grid.innerHTML = new Array(6).join('<div class="sk"></div>');
+  }
+
+  function load(){
+    if (busy) return;
+    busy = true;
+    btn.disabled = true;
+    msg.innerHTML = "";
+    sub.textContent = "reading the repository…";
+    if (!pages.length) skeleton();
+    fetch(API + "?ref=main&t=" + Date.now(), {cache: "no-store", headers: {"Accept": "application/vnd.github+json"}})
+      .then(function(r){
+        if (r.status === 403 || r.status === 429) throw new Error("github is rate-limiting this browser — wait a minute and hit refresh");
+        if (!r.ok) throw new Error("github returned " + r.status);
+        return r.json();
+      })
+      .then(function(data){
+        if (!Array.isArray(data)) throw new Error("unexpected answer from github");
+        var files = data.filter(function(f){
+          return f && f.type === "file" && /\.html?$/i.test(f.name) && f.name.toLowerCase() !== SELF;
+        }).sort(function(a, b){ return a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: "base"}); });
+        return withTitles(files).then(function(list){ pages = list; });
+      })
+      .then(function(){
+        sub.textContent = "everything in " + OWNER + "/" + REPO + ", straight from github — new pages show up on reload.";
+        render();
+      })
+      .catch(function(e){
+        grid.innerHTML = "";
+        count.textContent = "";
+        sub.textContent = "could not read the repository.";
+        msg.innerHTML = '<span style="color:var(--bad)">' + esc(e.message) + '</span> — ' +
+          '<a href="https://github.com/' + OWNER + '/' + REPO + '" target="_blank" rel="noopener">open the repo</a>, ' +
+          'or <a href="#" id="again">try again</a>.';
+        var again = document.getElementById("again");
+        if (again) again.onclick = function(ev){ ev.preventDefault(); busy = false; load(); };
+      })
+      .then(function(){ busy = false; btn.disabled = false; });
+  }
+
+  q.addEventListener("input", render);
+  btn.addEventListener("click", load);
+  document.addEventListener("keydown", function(e){
+    if (e.key === "/" && document.activeElement !== q){ e.preventDefault(); q.focus(); q.select(); }
+    if (e.key === "Escape" && document.activeElement === q){ q.value = ""; render(); q.blur(); }
+  });
+  load();
+})();
+</script>
+</body></html>
