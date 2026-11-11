@@ -51,6 +51,7 @@ input{min-width:0;flex:1;cursor:text}input::placeholder{color:var(--dim)}
   var q = document.getElementById("q");
   var btn = document.getElementById("r");
   var pages = [];
+  var cardEls = {};
   var busy = false;
 
   function pretty(name){
@@ -81,20 +82,29 @@ input{min-width:0;flex:1;cursor:text}input::placeholder{color:var(--dim)}
       })
       .catch(function(){ return null; });
   }
-  function withTitles(list){
-    var out = list.map(function(f){ return {name: f.name, size: f.size, title: null}; });
+  // Titles arrive after the grid is already on screen: each one patches its own card in place.
+  function fillTitles(list){
     var i = 0;
     function worker(){
       if (i >= list.length) return Promise.resolve();
-      var k = i++;
-      return titleOf(list[k]).then(function(t){
-        if (t) out[k].title = t;
+      var f = list[i++];
+      return titleOf(f).then(function(t){
+        if (t){
+          for (var k = 0; k < pages.length; k++){
+            if (pages[k].name === f.name){ pages[k].title = t; break; }
+          }
+          var el = cardEls[f.name];
+          if (el){
+            var tn = el.querySelector(".t");
+            if (tn) tn.textContent = t;
+          }
+        }
         return worker();
       });
     }
     var workers = [];
     for (var w = 0; w < Math.min(4, list.length); w++) workers.push(worker());
-    return Promise.all(workers).then(function(){ return out; });
+    return Promise.all(workers);
   }
 
   function render(){
@@ -114,13 +124,18 @@ input{min-width:0;flex:1;cursor:text}input::placeholder{color:var(--dim)}
     msg.innerHTML = "";
     grid.innerHTML = shown.map(function(p){
       var href = "./" + encodeURIComponent(p.name);
-      return '<a class="card" href="' + esc(href) + '">' +
+      return '<a class="card" data-name="' + esc(p.name) + '" href="' + esc(href) + '">' +
         '<div class="t">' + esc(p.title || pretty(p.name)) + '</div>' +
         '<div class="row" style="margin-top:8px">' +
           '<span class="f">' + esc(p.name) + '</span>' +
           '<span class="tag">' + esc(kb(p.size)) + '</span>' +
         '</div></a>';
     }).join("");
+    cardEls = {};
+    for (var i = 0; i < grid.children.length; i++){
+      var el = grid.children[i];
+      if (el.dataset && el.dataset.name) cardEls[el.dataset.name] = el;
+    }
   }
 
   function skeleton(){
@@ -145,13 +160,17 @@ input{min-width:0;flex:1;cursor:text}input::placeholder{color:var(--dim)}
         var files = data.filter(function(f){
           return f && f.type === "file" && /\.html?$/i.test(f.name) && f.name.toLowerCase() !== SELF;
         }).sort(function(a, b){ return a.name.localeCompare(b.name, undefined, {numeric: true, sensitivity: "base"}); });
-        return withTitles(files).then(function(list){ pages = list; });
-      })
-      .then(function(){
+        // First paint uses only what this one API call returned — no waiting on the files.
+        pages = files.map(function(f){ return {name: f.name, size: f.size, title: null}; });
         sub.textContent = "everything in " + OWNER + "/" + REPO + ", straight from github — new pages show up on reload.";
         render();
+        busy = false;
+        btn.disabled = false;
+        return fillTitles(files);
       })
       .catch(function(e){
+        busy = false;
+        btn.disabled = false;
         grid.innerHTML = "";
         count.textContent = "";
         sub.textContent = "could not read the repository.";
@@ -159,9 +178,8 @@ input{min-width:0;flex:1;cursor:text}input::placeholder{color:var(--dim)}
           '<a href="https://github.com/' + OWNER + '/' + REPO + '" target="_blank" rel="noopener">open the repo</a>, ' +
           'or <a href="#" id="again">try again</a>.';
         var again = document.getElementById("again");
-        if (again) again.onclick = function(ev){ ev.preventDefault(); busy = false; load(); };
-      })
-      .then(function(){ busy = false; btn.disabled = false; });
+        if (again) again.onclick = function(ev){ ev.preventDefault(); load(); };
+      });
   }
 
   q.addEventListener("input", render);
