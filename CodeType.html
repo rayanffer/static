@@ -45,7 +45,7 @@ button.p{background:var(--acc);color:var(--bg);border-color:var(--acc)}button.on
 <main id="app"></main>
 <div id="kb"></div>
 <script>
-const PAT=[["arr","Arrays & Hashing","Trade memory for speed with maps and sets."],["two","Two Pointers","Walk inward from both ends."],["win","Sliding Window","Grow and shrink a moving range."],["bin","Binary Search","Halve the search space each step."],["stk","Stack & Queue","Last-in, first-out matching."],["lnk","Linked Lists","Rewire next pointers."],["tre","Trees","Recurse on left and right."],["gra","Graphs","DFS/BFS over grids and edges."],["bkt","Backtracking","Choose, explore, un-choose."],["dp","Dynamic Programming","Reuse overlapping subproblems."]];
+const PAT=[["arr","Arrays & Hashing","Trade memory for speed with maps and sets."],["two","Two Pointers","Walk inward from both ends."],["win","Sliding Window","Grow and shrink a moving range."],["bin","Binary Search","Halve the search space each step."],["stk","Stack & Queue","Last-in, first-out matching."],["lnk","Linked Lists","Rewire next pointers."],["tre","Trees","Recurse on left and right."],["gra","Graphs","DFS/BFS over grids and edges."],["bkt","Backtracking","Choose, explore, un-choose."],["dp","Dynamic Programming","Reuse overlapping subproblems."],["srt","Sorting","Classic sorts and interview staples."]];
 const PR=[
 ["arr","Two Sum","Easy","Return indices of two numbers adding to target.","twoSum",`function twoSum(nums, target) {
   const seen = new Map();
@@ -324,7 +324,134 @@ const PR=[
   let a = 0, b = 0;
   for (const n of nums) [a, b] = [b, Math.max(b, a + n)];
   return b;
-}`,[[[[1,2,3,1]],4],[[[2,7,9,3,1]],12]],"O(n)","O(1)","Best = max(skip this house, rob it + best two back)."]
+}`,[[[[1,2,3,1]],4],[[[2,7,9,3,1]],12]],"O(n)","O(1)","Best = max(skip this house, rob it + best two back)."],
+["srt","Bubble Sort","Easy","Sort by repeatedly swapping adjacent out-of-order items.","bubbleSort",`function bubbleSort(a) {
+  for (let i = 0; i < a.length; i++) {
+    let swapped = false;
+    for (let j = 0; j < a.length - i - 1; j++) {
+      if (a[j] > a[j + 1]) {
+        [a[j], a[j + 1]] = [a[j + 1], a[j]];
+        swapped = true;
+      }
+    }
+    if (!swapped) break;
+  }
+  return a;
+}`,[[[[5,1,4,2,8]],[1,2,4,5,8]],[[[3,2,1]],[1,2,3]]],"O(n^2)","O(1)","Big values bubble to the end; stop if a pass swaps nothing."],
+["srt","Insertion Sort","Easy","Grow a sorted prefix by inserting each item.","insertionSort",`function insertionSort(a) {
+  for (let i = 1; i < a.length; i++) {
+    const key = a[i];
+    let j = i - 1;
+    while (j >= 0 && a[j] > key) {
+      a[j + 1] = a[j];
+      j--;
+    }
+    a[j + 1] = key;
+  }
+  return a;
+}`,[[[[5,2,4,6,1,3]],[1,2,3,4,5,6]]],"O(n^2)","O(1)","Shift larger items right, drop the key in the gap."],
+["srt","Merge Sort","Medium","Divide, sort halves, merge.","mergeSort",`function mergeSort(a) {
+  if (a.length < 2) return a;
+  const mid = a.length >> 1;
+  const l = mergeSort(a.slice(0, mid)), r = mergeSort(a.slice(mid));
+  const res = [];
+  let i = 0, j = 0;
+  while (i < l.length && j < r.length) res.push(l[i] <= r[j] ? l[i++] : r[j++]);
+  return res.concat(l.slice(i), r.slice(j));
+}`,[[[[38,27,43,3,9,82,10]],[3,9,10,27,38,43,82]]],"O(n log n)","O(n)","Split in half, then merge two sorted lists."],
+["srt","Quick Sort","Medium","Partition around a pivot and recurse.","quickSort",`function quickSort(a) {
+  if (a.length < 2) return a;
+  const pivot = a[a.length - 1];
+  const left = [], right = [];
+  for (let i = 0; i < a.length - 1; i++) {
+    (a[i] < pivot ? left : right).push(a[i]);
+  }
+  return [...quickSort(left), pivot, ...quickSort(right)];
+}`,[[[[10,7,8,9,1,5]],[1,5,7,8,9,10]],[[[3,3,1]],[1,3,3]]],"O(n log n) avg","O(n)","Smaller items go left of the pivot, the rest go right."],
+["srt","Heap Sort","Hard","Sort using a max-heap built in place.","heapSort",`function heapSort(a) {
+  const n = a.length;
+  const sift = (i, size) => {
+    while (true) {
+      let m = i;
+      const l = 2 * i + 1, r = l + 1;
+      if (l < size && a[l] > a[m]) m = l;
+      if (r < size && a[r] > a[m]) m = r;
+      if (m === i) return;
+      [a[i], a[m]] = [a[m], a[i]];
+      i = m;
+    }
+  };
+  for (let i = (n >> 1) - 1; i >= 0; i--) sift(i, n);
+  for (let end = n - 1; end > 0; end--) {
+    [a[0], a[end]] = [a[end], a[0]];
+    sift(0, end);
+  }
+  return a;
+}`,[[[[12,11,13,5,6,7]],[5,6,7,11,12,13]]],"O(n log n)","O(1)","Build a max-heap, then swap the max to the end and sift down."],
+["srt","Sort Colors","Medium","Sort 0s, 1s and 2s in one pass (Dutch flag).","sortColors",`function sortColors(nums) {
+  let l = 0, m = 0, r = nums.length - 1;
+  while (m <= r) {
+    if (nums[m] === 0) {
+      [nums[l], nums[m]] = [nums[m], nums[l]];
+      l++; m++;
+    } else if (nums[m] === 2) {
+      [nums[m], nums[r]] = [nums[r], nums[m]];
+      r--;
+    } else m++;
+  }
+  return nums;
+}`,[[[[2,0,2,1,1,0]],[0,0,1,1,2,2]]],"O(n)","O(1)","Three pointers: 0s go left, 2s go right."],
+["srt","Merge Intervals","Medium","Merge all overlapping intervals.","mergeIntervals",`function mergeIntervals(iv) {
+  iv.sort((a, b) => a[0] - b[0]);
+  const res = [iv[0]];
+  for (let i = 1; i < iv.length; i++) {
+    const last = res[res.length - 1];
+    if (iv[i][0] <= last[1]) last[1] = Math.max(last[1], iv[i][1]);
+    else res.push(iv[i]);
+  }
+  return res;
+}`,[[[[[1,3],[2,6],[8,10],[15,18]]],[[1,6],[8,10],[15,18]]]],"O(n log n)","O(n)","Sort by start; extend the last interval when they overlap."],
+["srt","Kth Largest Element (Quickselect)","Medium","Find the kth largest value in an unsorted array.","findKthLargest",`function findKthLargest(nums, k) {
+  const target = nums.length - k;
+  const select = (l, r) => {
+    const pivot = nums[r];
+    let p = l;
+    for (let i = l; i < r; i++) {
+      if (nums[i] <= pivot) {
+        [nums[i], nums[p]] = [nums[p], nums[i]];
+        p++;
+      }
+    }
+    [nums[p], nums[r]] = [nums[r], nums[p]];
+    if (p === target) return nums[p];
+    return p < target ? select(p + 1, r) : select(l, p - 1);
+  };
+  return select(0, nums.length - 1);
+}`,[[[[3,2,1,5,6,4],2],5],[[[3,2,3,1,2,4,5,5,6],4],4]],"O(n) avg","O(1)","Partition like quicksort but only recurse into one side."],
+["srt","Top K Frequent Elements","Medium","Return the k most frequent values.","topKFrequent",`function topKFrequent(nums, k) {
+  const cnt = new Map();
+  for (const n of nums) cnt.set(n, (cnt.get(n) || 0) + 1);
+  const buckets = Array.from({ length: nums.length + 1 }, () => []);
+  for (const [n, c] of cnt) buckets[c].push(n);
+  const res = [];
+  for (let i = buckets.length - 1; i >= 0 && res.length < k; i--) res.push(...buckets[i]);
+  return res.slice(0, k);
+}`,[[[[1,1,1,2,2,3],2],[1,2]],[[[1],1],[1]]],"O(n)","O(n)","Bucket sort: index = frequency."],
+["srt","Merge Sorted Array","Easy","Merge nums2 into nums1 in place.","merge",`function merge(nums1, m, nums2, n) {
+  let i = m - 1, j = n - 1, k = m + n - 1;
+  while (j >= 0) {
+    if (i >= 0 && nums1[i] > nums2[j]) nums1[k--] = nums1[i--];
+    else nums1[k--] = nums2[j--];
+  }
+  return nums1;
+}`,[[[[1,2,3,0,0,0],3,[2,5,6],3],[1,2,2,3,5,6]]],"O(n+m)","O(1)","Fill from the back so nothing is overwritten."],
+["srt","Meeting Rooms","Easy","Can one person attend every meeting?","canAttendMeetings",`function canAttendMeetings(iv) {
+  iv.sort((a, b) => a[0] - b[0]);
+  for (let i = 1; i < iv.length; i++) {
+    if (iv[i][0] < iv[i - 1][1]) return false;
+  }
+  return true;
+}`,[[[[[0,30],[5,10],[15,20]]],false],[[[[7,10],[2,4]]],true]],"O(n log n)","O(1)","After sorting by start, any overlap is with the previous meeting."]
 ].map((r,i)=>({id:i,pat:r[0],title:r[1],diff:r[2],desc:r[3],fn:r[4],sol:r[5],tests:r[6],tc:r[7],sc:r[8],ex:r[9]}));
 
 const ST=["Learn","Guided","Partial","Full"];
